@@ -1,4 +1,5 @@
 import { httpGetJson } from '../lib/http.js';
+import { naiveVnTimestampToIso } from '../lib/kbs-date.js';
 import { SourceParseError } from '../errors.js';
 import type {
   FinancialLineItem,
@@ -81,22 +82,13 @@ function periodLabel(head: KbsHeadEntry): string {
   return head.TermCode === 'N' ? String(head.YearPeriod) : `${head.YearPeriod}-${head.TermCode}`;
 }
 
-/**
- * KBS's ReportDate has no timezone designator (e.g. "2026-03-24T00:00:00").
- * `new Date(...)` would parse that as the executing machine's local time,
- * not Vietnam's — pin it to +07:00 (Vietnam has no DST) explicitly instead.
- */
-function reportDateToIso(reportDate: string): string {
-  return new Date(`${reportDate}+07:00`).toISOString();
-}
-
 function toFinancialPeriod(head: KbsHeadEntry): FinancialPeriod {
   const quarter = head.TermCode.startsWith('Q') ? Number(head.TermCode.slice(1)) : undefined;
   return {
     label: periodLabel(head),
     year: head.YearPeriod,
     quarter,
-    reportDate: head.ReportDate ? reportDateToIso(head.ReportDate) : undefined,
+    reportDate: head.ReportDate ? naiveVnTimestampToIso(head.ReportDate) : undefined,
     consolidated: head.United === 'HN',
     auditStatus: head.AuditedStatus ? AUDIT_STATUS_MAP[head.AuditedStatus] : undefined,
   };

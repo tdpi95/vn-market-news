@@ -157,6 +157,7 @@
   .fin-table th:first-child, .fin-table td:first-child { text-align: left; }
   .fin-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .fin-table .name-vi { color: var(--muted); font-size: 0.75rem; }
+  .text-table td, .text-table th { text-align: left !important; white-space: normal !important; font-variant-numeric: normal !important; }
   .fund-card { cursor: pointer; }
   .fund-card:hover { border-color: var(--accent); }
   .fund-detail-btn {
@@ -183,6 +184,8 @@
       <button class="tab" data-tab="company" role="tab" aria-selected="false">Company news</button>
       <button class="tab" data-tab="search" role="tab" aria-selected="false">Search</button>
       <button class="tab" data-tab="financials" role="tab" aria-selected="false">Financials</button>
+      <button class="tab" data-tab="company-info" role="tab" aria-selected="false">Company info</button>
+      <button class="tab" data-tab="symbols" role="tab" aria-selected="false">Symbols</button>
       <button class="tab" data-tab="funds" role="tab" aria-selected="false">Funds</button>
     </div>
 
@@ -211,6 +214,23 @@
             <option value="year">year</option>
             <option value="quarter">quarter</option>
           </select>
+        </label>
+      </div>
+      <div id="symbols-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
+        <label>
+          Type
+          <select id="symbol-type">
+            <option value="stock">stock</option>
+            <option value="fund">fund</option>
+            <option value="bond">bond</option>
+            <option value="corpbond">corpbond</option>
+            <option value="cw">cw</option>
+            <option value="future">future</option>
+          </select>
+        </label>
+        <label>
+          Search (symbol or name)
+          <input type="text" id="symbol-query" placeholder="hoa phat" />
         </label>
       </div>
       <div id="funds-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
@@ -259,6 +279,7 @@
   const tickerField = document.getElementById('ticker-field');
   const keywordField = document.getElementById('keyword-field');
   const financialsFields = document.getElementById('financials-fields');
+  const symbolsFields = document.getElementById('symbols-fields');
   const fundsFields = document.getElementById('funds-fields');
   const navHistoryField = document.getElementById('nav-history-field');
   const limitField = document.getElementById('limit-field');
@@ -269,12 +290,13 @@
   function setTab(name) {
     activeTab = name;
     tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
-    tickerField.style.display = (name === 'company' || name === 'financials') ? 'flex' : 'none';
+    tickerField.style.display = (name === 'company' || name === 'financials' || name === 'company-info') ? 'flex' : 'none';
     keywordField.style.display = name === 'search' ? 'flex' : 'none';
     financialsFields.style.display = name === 'financials' ? 'flex' : 'none';
+    symbolsFields.style.display = name === 'symbols' ? 'flex' : 'none';
     fundsFields.style.display = name === 'funds' ? 'flex' : 'none';
-    limitField.style.display = name === 'financials' ? 'none' : 'flex';
-    sourcesField.style.display = (name === 'financials' || name === 'funds') ? 'none' : 'flex';
+    limitField.style.display = (name === 'financials' || name === 'company-info') ? 'none' : 'flex';
+    sourcesField.style.display = (name === 'financials' || name === 'funds' || name === 'company-info' || name === 'symbols') ? 'none' : 'flex';
     if (name === 'funds') updateFundMode();
     errorsEl.innerHTML = '';
     resultsEl.innerHTML = '';
@@ -364,6 +386,84 @@
             <tbody>${rows}</tbody>
           </table>
         </div>
+      </div>`;
+  }
+
+  function renderCompanyInfo(data, name) {
+    const p = data.profile;
+    const officerRows = data.officers.map((o) => `
+      <tr><td>${escapeHtml(o.name)}</td><td>${escapeHtml(o.position || '—')}</td><td>${escapeHtml(o.fromDate || '—')}</td></tr>`).join('');
+    const shareholderRows = data.shareholders.map((s) => `
+      <tr><td>${escapeHtml(s.name)}</td><td>${s.sharesOwned != null ? s.sharesOwned.toLocaleString() : '—'}</td><td>${s.ownershipPercent != null ? s.ownershipPercent.toFixed(2) + '%' : '—'}</td></tr>`).join('');
+    const ownershipRows = data.ownership.map((o) => `
+      <tr><td>${escapeHtml(o.ownerType)}</td><td>${o.ownershipPercent != null ? o.ownershipPercent.toFixed(2) + '%' : '—'}</td></tr>`).join('');
+    const subsidiaryRows = data.subsidiaries.map((s) => `
+      <tr><td>${escapeHtml(s.name)}</td><td>${s.ownershipPercent != null ? s.ownershipPercent.toFixed(2) + '%' : '—'}</td></tr>`).join('');
+
+    resultsEl.innerHTML = `
+      <div class="card">
+        <h3>${escapeHtml(data.ticker)}${name?.name ? ` — ${escapeHtml(name.name)}` : ''} <span class="name-vi">${escapeHtml(p.companyType || '')}</span></h3>
+        ${name?.nameEn ? `<p class="name-vi" style="margin:0 0 0.5rem;">${escapeHtml(name.nameEn)}</p>` : ''}
+        <div class="meta">
+          ${p.exchange ? `<span class="badge">${escapeHtml(p.exchange)}</span>` : ''}
+          ${p.charterCapital != null ? `<span class="badge">Charter capital ${p.charterCapital.toLocaleString()} VND</span>` : ''}
+          ${p.numberOfEmployees != null ? `<span>${p.numberOfEmployees.toLocaleString()} employees</span>` : ''}
+          ${p.ceoName ? `<span>CEO: ${escapeHtml(p.ceoName)}</span>` : ''}
+        </div>
+        <p class="summary">${escapeHtml(p.businessModel || 'No business description reported.')}</p>
+        <div class="meta">
+          ${p.address ? `<span>${escapeHtml(p.address)}</span>` : ''}
+          ${p.website ? `<span><a href="${p.website}" target="_blank" rel="noopener">${escapeHtml(p.website)}</a></span>` : ''}
+        </div>
+        <h4 style="margin-bottom:0.3rem;">Officers</h4>
+        <div class="fin-table-wrap">
+          <table class="fin-table text-table">
+            <thead><tr><th>Name</th><th>Position</th><th>From</th></tr></thead>
+            <tbody>${officerRows || '<tr><td colspan="3" class="empty">None reported</td></tr>'}</tbody>
+          </table>
+        </div>
+        <h4 style="margin:0.75rem 0 0.3rem;">Major shareholders</h4>
+        <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead><tr><th>Name</th><th>Shares</th><th>% owned</th></tr></thead>
+            <tbody>${shareholderRows || '<tr><td colspan="3" class="empty">None reported</td></tr>'}</tbody>
+          </table>
+        </div>
+        <h4 style="margin:0.75rem 0 0.3rem;">Ownership structure</h4>
+        <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead><tr><th>Holder type</th><th>% owned</th></tr></thead>
+            <tbody>${ownershipRows || '<tr><td colspan="2" class="empty">None reported</td></tr>'}</tbody>
+          </table>
+        </div>
+        <h4 style="margin:0.75rem 0 0.3rem;">Subsidiaries / affiliates</h4>
+        <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead><tr><th>Name</th><th>% owned</th></tr></thead>
+            <tbody>${subsidiaryRows || '<tr><td colspan="2" class="empty">None reported</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function renderSymbols(data) {
+    if (!data.symbols?.length) {
+      resultsEl.innerHTML = '<p class="empty">No symbols matched.</p>';
+      return;
+    }
+    const rows = data.symbols.map((s) => `
+      <tr>
+        <td>${escapeHtml(s.symbol)}</td>
+        <td>${escapeHtml(s.name || '—')}</td>
+        <td>${escapeHtml(s.nameEn || '—')}</td>
+        <td>${escapeHtml(s.exchange || '—')}</td>
+      </tr>`).join('');
+    resultsEl.innerHTML = `
+      <div class="fin-table-wrap">
+        <table class="fin-table text-table">
+          <thead><tr><th>Symbol</th><th>Name</th><th>Name (EN)</th><th>Exchange</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>`;
   }
 
@@ -475,6 +575,16 @@
       const statementType = document.getElementById('statement-type').value;
       const period = document.getElementById('period-type').value;
       path = `/api/financials?ticker=${encodeURIComponent(ticker)}&statementType=${statementType}&period=${period}`;
+    } else if (activeTab === 'company-info') {
+      kind = 'company-info';
+      const ticker = document.getElementById('ticker').value.trim();
+      if (!ticker) { statusEl.textContent = 'Enter a ticker first.'; return; }
+      path = `/api/company-info?ticker=${encodeURIComponent(ticker)}`;
+    } else if (activeTab === 'symbols') {
+      kind = 'symbols';
+      const type = document.getElementById('symbol-type').value;
+      const query = document.getElementById('symbol-query').value.trim();
+      path = `/api/symbols?type=${encodeURIComponent(type)}&query=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`;
     } else {
       const query = document.getElementById('fund-query').value.trim();
       if (fundModeSelect.value === 'detail') {
@@ -512,6 +622,22 @@
       } else if (kind === 'fund-search') {
         statusEl.textContent = `${data.funds.length} fund(s) in ${took}ms`;
         renderFundSearch(data);
+      } else if (kind === 'symbols') {
+        statusEl.textContent = `${data.symbols.length} symbol(s) in ${took}ms`;
+        renderSymbols(data);
+      } else if (kind === 'company-info') {
+        let name;
+        try {
+          const symbolsRes = await fetch('/api/symbols?type=stock');
+          const symbolsData = await symbolsRes.json();
+          name = symbolsData.symbols?.find((s) => s.symbol === data.ticker);
+        } catch {
+          // Name lookup is best-effort — the profile endpoint has no name field, and
+          // the listing endpoint is a separate ~470KB call that can fail independently.
+        }
+        const took2 = Math.round(performance.now() - started);
+        statusEl.textContent = `Fetched ${escapeHtml(data.ticker)} in ${took2}ms`;
+        renderCompanyInfo(data, name);
       } else {
         statusEl.textContent = `Fetched ${escapeHtml(data.fund.shortName)} in ${took}ms`;
         renderFundDetail(data);

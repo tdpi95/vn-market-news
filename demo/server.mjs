@@ -78,6 +78,20 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, result);
     }
 
+    if (url.pathname === '/api/company-info') {
+      const ticker = url.searchParams.get('ticker')?.trim();
+      if (!ticker) return sendJson(res, 400, { error: 'ticker query param is required' });
+      const result = await client.getCompanyInfo(ticker);
+      return sendJson(res, 200, result);
+    }
+
+    if (url.pathname === '/api/symbols') {
+      const type = url.searchParams.get('type') || undefined;
+      const query = url.searchParams.get('query') || undefined;
+      const symbols = await client.listSymbols({ type, query, limit });
+      return sendJson(res, 200, { symbols });
+    }
+
     if (url.pathname === '/api/funds/search') {
       const query = url.searchParams.get('query') ?? '';
       const assetType = url.searchParams.get('assetType') || undefined;

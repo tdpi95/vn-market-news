@@ -37,6 +37,10 @@ export { createDddnSource } from './sources/dddn.js';
 export { createZnewsSource } from './sources/znews.js';
 export { KbsFinanceSource } from './sources/kbs-finance.js';
 export type { GetFinancialStatementsOptions } from './sources/kbs-finance.js';
+export { KbsCompanySource } from './sources/kbs-company.js';
+export type { GetCompanyInfoOptions } from './sources/kbs-company.js';
+export { KbsListingSource } from './sources/kbs-listing.js';
+export type { ListSymbolsOptions } from './sources/kbs-listing.js';
 export { FmarketFundSource } from './sources/fmarket-fund.js';
 export type { SearchFundsOptions, GetFundDetailOptions } from './sources/fmarket-fund.js';
 
@@ -54,6 +58,31 @@ export type {
   FinancialLineItem,
   FinancialStatementResult,
 } from './finance-types.js';
+
+export {
+  CompanyProfileSchema,
+  CompanyOfficerSchema,
+  CompanyShareholderSchema,
+  CompanyOwnershipGroupSchema,
+  CompanySubsidiarySchema,
+  CompanyCapitalHistoryEntrySchema,
+  CompanyLaborStructureEntrySchema,
+  CompanyInfoResultSchema,
+  CompanySymbolTypeSchema,
+  CompanySymbolListingEntrySchema,
+} from './company-types.js';
+export type {
+  CompanyProfile,
+  CompanyOfficer,
+  CompanyShareholder,
+  CompanyOwnershipGroup,
+  CompanySubsidiary,
+  CompanyCapitalHistoryEntry,
+  CompanyLaborStructureEntry,
+  CompanyInfoResult,
+  CompanySymbolType,
+  CompanySymbolListingEntry,
+} from './company-types.js';
 
 export {
   FundAssetTypeSchema,

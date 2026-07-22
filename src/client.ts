@@ -8,6 +8,10 @@ import { FmarketFundSource } from './sources/fmarket-fund.js';
 import type { GetFundDetailOptions, SearchFundsOptions } from './sources/fmarket-fund.js';
 import { KbsFinanceSource } from './sources/kbs-finance.js';
 import type { GetFinancialStatementsOptions } from './sources/kbs-finance.js';
+import { KbsCompanySource } from './sources/kbs-company.js';
+import type { GetCompanyInfoOptions } from './sources/kbs-company.js';
+import { KbsListingSource } from './sources/kbs-listing.js';
+import type { ListSymbolsOptions } from './sources/kbs-listing.js';
 import { createVnEconomySource } from './sources/vneconomy.js';
 import { createVnExpressSource } from './sources/vnexpress.js';
 import { VietstockSource } from './sources/vietstock.js';
@@ -25,6 +29,7 @@ import type {
 } from './types.js';
 import type { FinancialStatementResult } from './finance-types.js';
 import type { FundDetailResult, FundSummary } from './fund-types.js';
+import type { CompanyInfoResult, CompanySymbolListingEntry } from './company-types.js';
 import type { z } from 'zod';
 
 export function defaultSources(): NewsSource[] {
@@ -59,6 +64,8 @@ type QueryType = z.infer<typeof NewsQueryTypeSchema>;
 export class VnMarketNews {
   private readonly sources: NewsSource[];
   private readonly financeSource = new KbsFinanceSource();
+  private readonly companySource = new KbsCompanySource();
+  private readonly listingSource = new KbsListingSource();
   private readonly fundSource = new FmarketFundSource();
 
   constructor(opts: VnMarketNewsOptions = {}) {
@@ -82,6 +89,29 @@ export class VnMarketNews {
     opts: GetFinancialStatementsOptions = {},
   ): Promise<FinancialStatementResult> {
     return this.financeSource.getFinancialStatements(ticker, opts);
+  }
+
+  /**
+   * Company profile (business description, registration/contact info),
+   * officers, shareholders, ownership breakdown, subsidiaries, and charter
+   * capital history for a ticker, sourced from KB Securities — see
+   * `KbsCompanySource` for details and caveats. Like
+   * `getFinancialStatements`, this hits a single source and throws on
+   * failure rather than degrading into `sourceErrors`.
+   */
+  async getCompanyInfo(ticker: string, opts: GetCompanyInfoOptions = {}): Promise<CompanyInfoResult> {
+    return this.companySource.getCompanyInfo(ticker, opts);
+  }
+
+  /**
+   * Market-wide ticker → company name listing, sourced from KB Securities
+   * — see `KbsListingSource`. Separate from `getCompanyInfo` because the
+   * profile endpoint that powers it has no name field, and this listing
+   * endpoint has no per-ticker filtering (always fetches the whole
+   * market), so the two are deliberately not fused into one call.
+   */
+  async listSymbols(opts: ListSymbolsOptions = {}): Promise<CompanySymbolListingEntry[]> {
+    return this.listingSource.listSymbols(opts);
   }
 
   /**
