@@ -1,8 +1,17 @@
 import { dedupeNewsItems, sortByPublishedAtDesc } from './lib/dedupe.js';
+import { createCafebizSource } from './sources/cafebiz.js';
 import { CafefSource } from './sources/cafef.js';
+import { createDddnSource } from './sources/dddn.js';
 import { GoogleNewsSource } from './sources/google-news.js';
 import { HoseSource } from './sources/hose.js';
+import { FmarketFundSource } from './sources/fmarket-fund.js';
+import type { GetFundDetailOptions, SearchFundsOptions } from './sources/fmarket-fund.js';
+import { KbsFinanceSource } from './sources/kbs-finance.js';
+import type { GetFinancialStatementsOptions } from './sources/kbs-finance.js';
+import { createVnEconomySource } from './sources/vneconomy.js';
+import { createVnExpressSource } from './sources/vnexpress.js';
 import { VietstockSource } from './sources/vietstock.js';
+import { createZnewsSource } from './sources/znews.js';
 import { NewsQueryTypeSchema } from './types.js';
 import type {
   CompanyNewsQuery,
@@ -14,10 +23,22 @@ import type {
   SourceError,
   SourceName,
 } from './types.js';
+import type { FinancialStatementResult } from './finance-types.js';
+import type { FundDetailResult, FundSummary } from './fund-types.js';
 import type { z } from 'zod';
 
 export function defaultSources(): NewsSource[] {
-  return [new HoseSource(), new VietstockSource(), new CafefSource(), new GoogleNewsSource()];
+  return [
+    new HoseSource(),
+    new VietstockSource(),
+    new CafefSource(),
+    new GoogleNewsSource(),
+    createVnExpressSource(),
+    createCafebizSource(),
+    createVnEconomySource(),
+    createDddnSource(),
+    createZnewsSource(),
+  ];
 }
 
 export interface VnMarketNewsOptions {
@@ -37,6 +58,8 @@ type QueryType = z.infer<typeof NewsQueryTypeSchema>;
  */
 export class VnMarketNews {
   private readonly sources: NewsSource[];
+  private readonly financeSource = new KbsFinanceSource();
+  private readonly fundSource = new FmarketFundSource();
 
   constructor(opts: VnMarketNewsOptions = {}) {
     let sources = opts.sources ?? defaultSources();
@@ -45,6 +68,38 @@ export class VnMarketNews {
       sources = sources.filter((s) => !disabled.has(s.name));
     }
     this.sources = sources;
+  }
+
+  /**
+   * Structured financial statements/ratios for a ticker (balance sheet,
+   * income statement, cash flow, or ratios), sourced from KB Securities —
+   * see `KbsFinanceSource` for details and caveats. Unlike the news
+   * methods above, this hits a single source and throws on failure rather
+   * than degrading into `sourceErrors`, since there's no fallback source.
+   */
+  async getFinancialStatements(
+    ticker: string,
+    opts: GetFinancialStatementsOptions = {},
+  ): Promise<FinancialStatementResult> {
+    return this.financeSource.getFinancialStatements(ticker, opts);
+  }
+
+  /**
+   * Search/list open-end mutual funds by short name or name substring
+   * (pass '' to list all), sourced from Fmarket — see `FmarketFundSource`.
+   * Throws on failure rather than degrading into `sourceErrors`.
+   */
+  async searchFunds(query = '', opts: SearchFundsOptions = {}): Promise<FundSummary[]> {
+    return this.fundSource.searchFunds(query, opts);
+  }
+
+  /**
+   * NAV, top holdings, and industry/asset allocation for one fund, by its
+   * short name (e.g. "VESAF"). Set `includeNavHistory` for full NAV history
+   * since inception (a separate, heavier call).
+   */
+  async getFundDetail(symbol: string, opts: GetFundDetailOptions = {}): Promise<FundDetailResult> {
+    return this.fundSource.getFundDetail(symbol, opts);
   }
 
   async getMarketNews(query: MarketNewsQuery = {}): Promise<NewsFeedResult> {

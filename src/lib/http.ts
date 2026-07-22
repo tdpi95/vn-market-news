@@ -1,5 +1,4 @@
 import { SourceHttpError } from '../errors.js';
-import type { SourceName } from '../types.js';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRIES = 2;
@@ -46,7 +45,7 @@ function combineSignals(a?: AbortSignal, b?: AbortSignal): AbortSignal {
 }
 
 async function requestOnce(
-  source: SourceName,
+  source: string,
   url: string,
   opts: HttpRequestOptions,
 ): Promise<Response> {
@@ -78,7 +77,7 @@ async function requestOnce(
 }
 
 async function requestWithRetry(
-  source: SourceName,
+  source: string,
   url: string,
   opts: HttpRequestOptions,
 ): Promise<Response> {
@@ -122,7 +121,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function httpGetText(
-  source: SourceName,
+  source: string,
   url: string,
   opts: HttpRequestOptions = {},
 ): Promise<string> {
@@ -131,7 +130,7 @@ export async function httpGetText(
 }
 
 export async function httpGetJson<T>(
-  source: SourceName,
+  source: string,
   url: string,
   opts: HttpRequestOptions = {},
 ): Promise<T> {
@@ -144,7 +143,7 @@ export async function httpGetJson<T>(
 }
 
 export async function httpPostJson<T>(
-  source: SourceName,
+  source: string,
   url: string,
   body: unknown,
   opts: HttpRequestOptions = {},

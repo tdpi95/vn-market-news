@@ -141,12 +141,40 @@
   }
   .summary { font-size: 0.88rem; color: var(--text); line-height: 1.4; margin: 0; }
   .empty { color: var(--muted); font-size: 0.9rem; }
+
+  select {
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .fin-table-wrap { overflow-x: auto; }
+  .fin-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .fin-table th, .fin-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); }
+  .fin-table th { text-align: right; white-space: nowrap; }
+  .fin-table th:first-child, .fin-table td:first-child { text-align: left; }
+  .fin-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fin-table .name-vi { color: var(--muted); font-size: 0.75rem; }
+  .fund-card { cursor: pointer; }
+  .fund-card:hover { border-color: var(--accent); }
+  .fund-detail-btn {
+    margin-top: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--accent);
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
   <header>
     <h1>vn-market-news demo</h1>
-    <p>Local UI over the vn-market-news library — market news, per-ticker news, and search.</p>
+    <p>Local UI over the vn-market-news library — news, financial statements, and mutual fund data.</p>
   </header>
 
   <div class="layout">
@@ -154,6 +182,8 @@
       <button class="tab" data-tab="market" role="tab" aria-selected="true">Market news</button>
       <button class="tab" data-tab="company" role="tab" aria-selected="false">Company news</button>
       <button class="tab" data-tab="search" role="tab" aria-selected="false">Search</button>
+      <button class="tab" data-tab="financials" role="tab" aria-selected="false">Financials</button>
+      <button class="tab" data-tab="funds" role="tab" aria-selected="false">Funds</button>
     </div>
 
     <form id="form">
@@ -165,7 +195,42 @@
         Keyword
         <input type="text" id="keyword" placeholder="lãi suất ngân hàng" />
       </label>
-      <label>
+      <div id="financials-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
+        <label>
+          Statement type
+          <select id="statement-type">
+            <option value="balance_sheet">balance_sheet</option>
+            <option value="income_statement">income_statement</option>
+            <option value="cash_flow">cash_flow</option>
+            <option value="ratios">ratios</option>
+          </select>
+        </label>
+        <label>
+          Period
+          <select id="period-type">
+            <option value="year">year</option>
+            <option value="quarter">quarter</option>
+          </select>
+        </label>
+      </div>
+      <div id="funds-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
+        <label>
+          Mode
+          <select id="fund-mode">
+            <option value="search">Search funds</option>
+            <option value="detail">Fund detail</option>
+          </select>
+        </label>
+        <label>
+          Symbol / search text
+          <input type="text" id="fund-query" placeholder="VESAF" />
+        </label>
+        <label id="nav-history-field" style="display:none; flex-direction:row; align-items:center; gap:0.35rem;">
+          <input type="checkbox" id="include-nav-history" />
+          Include NAV history
+        </label>
+      </div>
+      <label id="limit-field">
         Limit
         <input type="number" id="limit" value="15" min="1" max="100" />
       </label>
@@ -175,6 +240,11 @@
         <label><input type="checkbox" value="vietstock" checked /> vietstock</label>
         <label><input type="checkbox" value="cafef" checked /> cafef</label>
         <label><input type="checkbox" value="google-news" checked /> google-news</label>
+        <label><input type="checkbox" value="vnexpress" checked /> vnexpress</label>
+        <label><input type="checkbox" value="cafebiz" checked /> cafebiz</label>
+        <label><input type="checkbox" value="vneconomy" checked /> vneconomy</label>
+        <label><input type="checkbox" value="dddn" checked /> dddn</label>
+        <label><input type="checkbox" value="znews" checked /> znews</label>
       </div>
       <button type="submit" id="submit">Fetch</button>
     </form>
@@ -188,15 +258,34 @@
   const tabs = document.querySelectorAll('.tab');
   const tickerField = document.getElementById('ticker-field');
   const keywordField = document.getElementById('keyword-field');
+  const financialsFields = document.getElementById('financials-fields');
+  const fundsFields = document.getElementById('funds-fields');
+  const navHistoryField = document.getElementById('nav-history-field');
+  const limitField = document.getElementById('limit-field');
+  const sourcesField = document.getElementById('sources');
+  const fundModeSelect = document.getElementById('fund-mode');
   let activeTab = 'market';
 
   function setTab(name) {
     activeTab = name;
     tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
-    tickerField.style.display = name === 'company' ? 'flex' : 'none';
+    tickerField.style.display = (name === 'company' || name === 'financials') ? 'flex' : 'none';
     keywordField.style.display = name === 'search' ? 'flex' : 'none';
+    financialsFields.style.display = name === 'financials' ? 'flex' : 'none';
+    fundsFields.style.display = name === 'funds' ? 'flex' : 'none';
+    limitField.style.display = name === 'financials' ? 'none' : 'flex';
+    sourcesField.style.display = (name === 'financials' || name === 'funds') ? 'none' : 'flex';
+    if (name === 'funds') updateFundMode();
+    errorsEl.innerHTML = '';
+    resultsEl.innerHTML = '';
+    statusEl.textContent = '';
   }
   tabs.forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
+
+  function updateFundMode() {
+    navHistoryField.style.display = fundModeSelect.value === 'detail' ? 'flex' : 'none';
+  }
+  fundModeSelect.addEventListener('change', updateFundMode);
 
   const form = document.getElementById('form');
   const statusEl = document.getElementById('status');
@@ -245,22 +334,158 @@
     }).join('');
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  function renderFinancials(data) {
+    const periods = data.periods;
+    const header = periods.map((p) => {
+      const flags = [p.consolidated ? 'consol.' : 'standalone', p.auditStatus].filter(Boolean).join(', ');
+      return `<th>${escapeHtml(p.label)}${flags ? `<br><span class="name-vi">${escapeHtml(flags)}</span>` : ''}</th>`;
+    }).join('');
+
+    const rows = data.items.map((item) => {
+      const indent = '&nbsp;&nbsp;'.repeat(item.level);
+      const cells = periods.map((p) => {
+        const v = item.values[p.label];
+        return `<td>${v == null ? '—' : v.toLocaleString()}</td>`;
+      }).join('');
+      return `<tr><td>${indent}${escapeHtml(item.name)}${item.nameVi ? `<br><span class="name-vi">${escapeHtml(item.nameVi)}</span>` : ''}</td>${cells}</tr>`;
+    }).join('');
+
+    resultsEl.innerHTML = `
+      <div class="card">
+        <div class="meta">
+          <span class="badge">${escapeHtml(data.ticker)}</span>
+          <span class="badge">${escapeHtml(data.statementType)}</span>
+          <span class="badge">${escapeHtml(data.periodType)}</span>
+          <span class="badge">${escapeHtml(data.currency)}${data.unitScale ? ` × ${data.unitScale}` : ''}</span>
+        </div>
+        <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead><tr><th>Line item</th>${header}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function fundCardHtml(fund) {
+    const c = fund.navChangePercent || {};
+    const chip = (label, v) => (v == null ? '' : `<span class="badge">${label} ${v > 0 ? '+' : ''}${v.toFixed(2)}%</span>`);
+    return `
+      <article class="card fund-card">
+        <h3>${escapeHtml(fund.shortName)} <span class="name-vi">${escapeHtml(fund.name)}</span></h3>
+        <div class="meta">
+          ${fund.assetType ? `<span class="badge">${escapeHtml(fund.assetType)}</span>` : ''}
+          <span class="badge">NAV ${fund.nav.toLocaleString()}</span>
+          ${fund.managerName ? `<span>${escapeHtml(fund.managerName)}</span>` : ''}
+          ${fund.managementFee != null ? `<span>fee ${fund.managementFee}%</span>` : ''}
+        </div>
+        <div class="meta">${chip('1y', c.m12)} ${chip('YTD', c.ytd)} ${chip('since inception', c.sinceInception)}</div>
+        <button type="button" class="fund-detail-btn" data-symbol="${escapeHtml(fund.shortName)}">View detail →</button>
+      </article>`;
+  }
+
+  function renderFundSearch(data) {
+    if (!data.funds?.length) {
+      resultsEl.innerHTML = '<p class="empty">No funds matched.</p>';
+      return;
+    }
+    resultsEl.innerHTML = data.funds.map(fundCardHtml).join('');
+    resultsEl.querySelectorAll('.fund-detail-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('fund-query').value = btn.dataset.symbol;
+        fundModeSelect.value = 'detail';
+        updateFundMode();
+        runQuery();
+      });
+    });
+  }
+
+  function renderFundDetail(data) {
+    const holdingsRows = data.topHoldings.map((h) => `
+      <tr>
+        <td>${escapeHtml(h.code || '—')}</td>
+        <td>${escapeHtml(h.assetType)}</td>
+        <td>${escapeHtml(h.industry || '—')}</td>
+        <td>${h.netAssetPercent.toFixed(2)}%</td>
+      </tr>`).join('');
+
+    const industryRows = data.industryAllocation
+      .map((i) => `<li>${escapeHtml(i.industry)}: ${i.assetPercent.toFixed(2)}%</li>`).join('');
+    const assetRows = data.assetAllocation
+      .map((a) => `<li>${escapeHtml(a.assetType)}: ${a.assetPercent.toFixed(2)}%</li>`).join('');
+
+    let navSection = '';
+    if (data.navHistory?.length) {
+      const first = data.navHistory[0];
+      const last = data.navHistory[data.navHistory.length - 1];
+      navSection = `
+        <div class="meta">
+          <span class="badge">NAV history: ${data.navHistory.length} point(s)</span>
+          <span>${escapeHtml(first.date)} → ${first.nav.toLocaleString()}</span>
+          <span>${escapeHtml(last.date)} → ${last.nav.toLocaleString()}</span>
+        </div>`;
+    }
+
+    resultsEl.innerHTML = `
+      <div class="card">
+        <h3>${escapeHtml(data.fund.shortName)} <span class="name-vi">${escapeHtml(data.fund.name)}</span></h3>
+        <div class="meta">
+          ${data.fund.assetType ? `<span class="badge">${escapeHtml(data.fund.assetType)}</span>` : ''}
+          <span class="badge">NAV ${data.fund.nav.toLocaleString()}</span>
+          ${data.fund.managerName ? `<span>${escapeHtml(data.fund.managerName)}</span>` : ''}
+        </div>
+        ${navSection}
+        <h4 style="margin-bottom:0.3rem;">Top holdings</h4>
+        <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead><tr><th>Code</th><th>Type</th><th>Industry</th><th>% NAV</th></tr></thead>
+            <tbody>${holdingsRows || '<tr><td colspan="4" class="empty">None reported</td></tr>'}</tbody>
+          </table>
+        </div>
+        <h4 style="margin:0.75rem 0 0.3rem;">Industry allocation</h4>
+        <ul style="margin:0; padding-left:1.2rem; font-size:0.85rem;">${industryRows || '<li class="empty">None reported</li>'}</ul>
+        <h4 style="margin:0.75rem 0 0.3rem;">Asset allocation</h4>
+        <ul style="margin:0; padding-left:1.2rem; font-size:0.85rem;">${assetRows || '<li class="empty">None reported</li>'}</ul>
+      </div>`;
+  }
+
+  async function runQuery() {
     const limit = document.getElementById('limit').value || '15';
     const sources = selectedSources().join(',');
 
     let path;
+    let kind;
     if (activeTab === 'market') {
+      kind = 'news';
       path = `/api/market?limit=${encodeURIComponent(limit)}&sources=${encodeURIComponent(sources)}`;
     } else if (activeTab === 'company') {
+      kind = 'news';
       const ticker = document.getElementById('ticker').value.trim();
       if (!ticker) { statusEl.textContent = 'Enter a ticker first.'; return; }
       path = `/api/company?ticker=${encodeURIComponent(ticker)}&limit=${encodeURIComponent(limit)}&sources=${encodeURIComponent(sources)}`;
-    } else {
+    } else if (activeTab === 'search') {
+      kind = 'news';
       const keyword = document.getElementById('keyword').value.trim();
       if (!keyword) { statusEl.textContent = 'Enter a keyword first.'; return; }
       path = `/api/search?keyword=${encodeURIComponent(keyword)}&limit=${encodeURIComponent(limit)}&sources=${encodeURIComponent(sources)}`;
+    } else if (activeTab === 'financials') {
+      kind = 'financials';
+      const ticker = document.getElementById('ticker').value.trim();
+      if (!ticker) { statusEl.textContent = 'Enter a ticker first.'; return; }
+      const statementType = document.getElementById('statement-type').value;
+      const period = document.getElementById('period-type').value;
+      path = `/api/financials?ticker=${encodeURIComponent(ticker)}&statementType=${statementType}&period=${period}`;
+    } else {
+      const query = document.getElementById('fund-query').value.trim();
+      if (fundModeSelect.value === 'detail') {
+        kind = 'fund-detail';
+        if (!query) { statusEl.textContent = 'Enter a fund symbol first.'; return; }
+        const includeNavHistory = document.getElementById('include-nav-history').checked;
+        path = `/api/funds/detail?symbol=${encodeURIComponent(query)}&includeNavHistory=${includeNavHistory}`;
+      } else {
+        kind = 'fund-search';
+        path = `/api/funds/search?query=${encodeURIComponent(query)}&limit=${encodeURIComponent(limit)}`;
+      }
     }
 
     submitBtn.disabled = true;
@@ -278,14 +503,30 @@
         return;
       }
       const took = Math.round(performance.now() - started);
-      statusEl.textContent = `${data.items.length} item(s) in ${took}ms (generated ${new Date(data.generatedAt).toLocaleTimeString()})`;
-      renderResults(data);
+      if (kind === 'news') {
+        statusEl.textContent = `${data.items.length} item(s) in ${took}ms (generated ${new Date(data.generatedAt).toLocaleTimeString()})`;
+        renderResults(data);
+      } else if (kind === 'financials') {
+        statusEl.textContent = `${data.items.length} line item(s) × ${data.periods.length} period(s) in ${took}ms`;
+        renderFinancials(data);
+      } else if (kind === 'fund-search') {
+        statusEl.textContent = `${data.funds.length} fund(s) in ${took}ms`;
+        renderFundSearch(data);
+      } else {
+        statusEl.textContent = `Fetched ${escapeHtml(data.fund.shortName)} in ${took}ms`;
+        renderFundDetail(data);
+      }
     } catch (err) {
       statusEl.textContent = '';
       errorsEl.innerHTML = `<div class="errors">${escapeHtml(err.message)}</div>`;
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    runQuery();
   });
 
   setTab('market');

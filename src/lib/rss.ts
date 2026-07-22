@@ -1,6 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
 import { SourceParseError } from '../errors.js';
-import type { SourceName } from '../types.js';
 
 export interface RssItem {
   title: string;
@@ -34,7 +33,7 @@ function asArray<T>(value: T | T[] | undefined): T[] {
 }
 
 /** Parses a generic RSS 2.0 feed (as used by HOSE, Vietstock, CafeF) into plain items. */
-export function parseRss(source: SourceName, xml: string): RssItem[] {
+export function parseRss(source: string, xml: string): RssItem[] {
   let doc: unknown;
   try {
     doc = parser.parse(xml);

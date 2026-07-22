@@ -30,6 +30,51 @@ export { VietstockSource } from './sources/vietstock.js';
 export { CafefSource } from './sources/cafef.js';
 export { GoogleNewsSource } from './sources/google-news.js';
 export type { GoogleNewsSourceOptions } from './sources/google-news.js';
+export { createVnExpressSource } from './sources/vnexpress.js';
+export { createCafebizSource } from './sources/cafebiz.js';
+export { createVnEconomySource } from './sources/vneconomy.js';
+export { createDddnSource } from './sources/dddn.js';
+export { createZnewsSource } from './sources/znews.js';
+export { KbsFinanceSource } from './sources/kbs-finance.js';
+export type { GetFinancialStatementsOptions } from './sources/kbs-finance.js';
+export { FmarketFundSource } from './sources/fmarket-fund.js';
+export type { SearchFundsOptions, GetFundDetailOptions } from './sources/fmarket-fund.js';
+
+export {
+  FinancialStatementTypeSchema,
+  FinancialPeriodTypeSchema,
+  FinancialPeriodSchema,
+  FinancialLineItemSchema,
+  FinancialStatementResultSchema,
+} from './finance-types.js';
+export type {
+  FinancialStatementType,
+  FinancialPeriodType,
+  FinancialPeriod,
+  FinancialLineItem,
+  FinancialStatementResult,
+} from './finance-types.js';
+
+export {
+  FundAssetTypeSchema,
+  FundNavChangeSchema,
+  FundSummarySchema,
+  FundHoldingSchema,
+  FundIndustryAllocationSchema,
+  FundAssetAllocationSchema,
+  FundNavPointSchema,
+  FundDetailResultSchema,
+} from './fund-types.js';
+export type {
+  FundAssetType,
+  FundNavChange,
+  FundSummary,
+  FundHolding,
+  FundIndustryAllocation,
+  FundAssetAllocation,
+  FundNavPoint,
+  FundDetailResult,
+} from './fund-types.js';
 
 export { dedupeNewsItems, sortByPublishedAtDesc } from './lib/dedupe.js';
 export { parseRss } from './lib/rss.js';

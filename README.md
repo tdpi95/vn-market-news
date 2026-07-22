@@ -1,8 +1,9 @@
 # vn-market-news
 
-Aggregates Vietnam stock market news and official disclosures from multiple
-sources into one normalized schema, suitable as a feed for analysis /
-decision-support AI pipelines.
+Aggregates Vietnam stock market news, official disclosures, structured
+financial statements, and mutual fund data from multiple sources into
+normalized schemas, suitable as a feed for analysis/decision-support AI
+pipelines.
 
 Sources:
 
@@ -12,6 +13,16 @@ Sources:
 | **Vietstock** (`vietstock`) | News articles, aggregated from many outlets | Undocumented internal search API + RSS channels | Confirmed working, but unofficial/fragile |
 | **CafeF** (`cafef`) | News articles | RSS channels | Confirmed working; no per-ticker feed exists |
 | **Google News** (`google-news`) | General news mentioning a ticker/company/keyword | `news.google.com/rss/search` | Stable, well-known format |
+| **VnExpress** (`vnexpress`) | Business news | RSS channel | Confirmed working; only a general "kinh-doanh" feed exists, no stock-specific one |
+| **Cafebiz** (`cafebiz`) | Business/finance news | RSS channels | Confirmed working; no per-ticker feed exists |
+| **VnEconomy** (`vneconomy`) | Stock market/finance news | RSS channels | Confirmed working; no per-ticker feed exists |
+| **Diễn Đàn Doanh Nghiệp** (`dddn`) | Business/finance news (VCCI's newspaper) | RSS channels | Confirmed working; no per-ticker feed exists |
+| **Znews** (`znews`) | Business/finance news | RSS channel | Confirmed working; only one relevant category feed exists (zingnews.vn now redirects here) |
+
+All of the above except HOSE/Vietstock/Google News have no per-ticker feed
+or structured ticker field, so company news is approximated the same way
+as CafeF: filtering general-channel titles for ticker mentions
+(`tickerConfidence: 'heuristic'`).
 
 HNX (Hanoi Stock Exchange) is intentionally not covered: it has no public
 API, its disclosures are mostly bare PDF attachments with little structured
@@ -19,6 +30,12 @@ text to extract, and its server has a broken TLS certificate chain that
 requires a manual workaround to reach at all — not worth the complexity for
 low-value content. You can still add it yourself as a custom `NewsSource`
 if you need it (see "Selecting/disabling sources" below).
+
+Thời Báo Kinh Tế Sài Gòn (thesaigontimes.vn) was investigated but isn't
+included: every URL on the site returned HTTP 503 across repeated live
+attempts, so there was nothing to verify against. It may just be this
+environment's network path — feel free to add it yourself if it works for
+you.
 
 ## Install
 
@@ -65,7 +82,7 @@ request. Always check it if completeness matters for your use case.
 ```ts
 interface NewsItem {
   id: string;                     // stable id, safe to use as a dedup/cache key
-  source: 'hose' | 'vietstock' | 'cafef' | 'google-news';
+  source: 'hose' | 'vietstock' | 'cafef' | 'google-news' | 'vnexpress' | 'cafebiz' | 'vneconomy' | 'dddn' | 'znews';
   sourceType: 'official_disclosure' | 'news_article';
   title: string;
   summary?: string;                // plain text, HTML stripped
@@ -91,8 +108,9 @@ you're feeding this into an AI pipeline that reasons over confidence:
   the source doesn't declare tickers structurally (e.g. Google News), so the
   item is tagged with the ticker you queried for.
 - `heuristic` — extracted from free text via regex; lower precision, may
-  contain false positives/negatives (used for CafeF/Vietstock/Google News
-  market-wide feeds, which don't carry structured ticker fields).
+  contain false positives/negatives (used for CafeF/Vietstock/Google News/
+  VnExpress/Cafebiz/VnEconomy/Diễn Đàn Doanh Nghiệp/Znews market-wide feeds, none of
+  which carry a structured ticker field).
 
 Both `NewsItem` and `NewsFeedResult` are exported as Zod schemas
 (`NewsItemSchema`, `NewsFeedResultSchema`) if you want runtime validation
@@ -106,6 +124,75 @@ import { toMarkdownDigest } from 'vn-market-news';
 const digest = toMarkdownDigest(market.items);
 // paste `digest` straight into a prompt/context window
 ```
+
+## Financial statements
+
+Structured balance sheet, income statement, cash flow, and financial ratio
+data (not just news about them), sourced from KB Securities Vietnam:
+
+```ts
+const balanceSheet = await client.getFinancialStatements('HPG', {
+  statementType: 'balance_sheet', // 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios' (default: 'balance_sheet')
+  period: 'year',                 // 'year' | 'quarter' (default: 'year')
+});
+```
+
+Returns a `FinancialStatementResult`:
+
+```ts
+interface FinancialStatementResult {
+  ticker: string;
+  statementType: 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios';
+  periodType: 'year' | 'quarter';
+  currency: string;                 // "VND"
+  unitScale?: number;                // multiply statement values by this for raw VND (1000); absent for `ratios`
+  periods: FinancialPeriod[];        // e.g. [{ label: "2025", year: 2025, consolidated: true, auditStatus: "audited" }, ...]
+  items: FinancialLineItem[];        // e.g. { name: "Total assets", nameVi: "...", level: 1, values: { "2025": 123, "2024": 111 } }
+  fetchedAt: string;
+  source: 'kbs';
+}
+```
+
+Each `FinancialLineItem.values` is keyed by the matching `FinancialPeriod.label`
+(e.g. `"2025"` for annual, `"2025-Q4"` for quarterly), so you can zip
+`periods`/`items` together, or just read `values['2025']` directly. Line
+items carry both `name` (English) and `nameVi`, plus `level` for
+indentation/rollup structure (0 = top-level, e.g. "ASSETS") and `section`
+for the report component/ratio category (e.g. "Profitability ratios").
+
+This hits a single source with no fallback, so unlike the news methods
+above it throws on failure instead of populating `sourceErrors`.
+
+## Mutual funds
+
+Open-end fund data (NAV, top holdings, industry/asset allocation), sourced
+from Fmarket, Vietnam's main open-end fund distribution platform:
+
+```ts
+const funds = await client.searchFunds('VESAF');           // search/list funds by short name/name
+const detail = await client.getFundDetail('VESAF', {
+  includeNavHistory: true, // also fetch full NAV history since inception (a separate call)
+});
+```
+
+`searchFunds` returns `FundSummary[]` (id, short name, NAV, management fee,
+manager, and NAV change over several trailing windows). `getFundDetail`
+returns a `FundDetailResult`:
+
+```ts
+interface FundDetailResult {
+  fund: FundSummary;
+  topHoldings: FundHolding[];                 // top ~10 positions, stocks and bonds both included
+  industryAllocation: FundIndustryAllocation[];
+  assetAllocation: FundAssetAllocation[];      // e.g. stocks vs cash split
+  navHistory?: FundNavPoint[];                 // only when includeNavHistory is set
+  fetchedAt: string;
+  source: 'fmarket';
+}
+```
+
+Like `getFinancialStatements`, this hits a single source with no fallback
+and throws on failure instead of populating `sourceErrors`.
 
 ## Selecting/disabling sources
 
@@ -136,12 +223,28 @@ const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource
 - **HOSE's list-endpoint news items don't carry a ticker field directly** —
   tickers are recovered from the conventional `"TICKER: ..."` title prefix,
   or from the ticker you queried by. See `tickerConfidence`.
+- **`getFinancialStatements` uses an undocumented internal API** (KB
+  Securities Vietnam's own web-trading backend), not a published public API
+  — same "could change without notice" risk as Vietstock/CafeF. It also
+  only returns consolidated (group-level) figures — there's no confirmed
+  way to request standalone/parent-only statements — and the number of
+  periods returned isn't controllable (always ~4 most-recent), so build
+  your own history by calling repeatedly over time if you need more.
+- **`searchFunds`/`getFundDetail` also use an undocumented public API**
+  (Fmarket's own frontend backend) — genuinely public/unauthenticated, but
+  no published contract, so it can change shape without notice.
+- **VnExpress, Cafebiz, VnEconomy, Diễn Đàn Doanh Nghiệp, and Znews have no
+  per-ticker feed either**, same limitation and same heuristic as CafeF
+  above.
 
 ## Demo UI
 
 A small local server + browser UI is included under `demo/` for exercising
-the library interactively (market news / company news / search, with a
-source picker and a limit control) without writing any code.
+the library interactively without writing any code — five tabs: Market
+news, Company news, Search, Financials, and Funds (with a source picker
+and limit control on the news tabs, statement type/period selectors on
+Financials, and a search-then-detail flow with a "View detail →" button
+per result on Funds).
 
 ```bash
 npm install
@@ -151,7 +254,8 @@ npm run demo   # builds the library, then starts the demo server
 Then open `http://localhost:4173`. A plain HTML page can't call these
 sources directly (none of them send CORS headers), so `demo/server.mjs`
 runs `VnMarketNews` server-side and exposes it to the page over same-origin
-JSON endpoints (`/api/market`, `/api/company`, `/api/search`) — see
+JSON endpoints (`/api/market`, `/api/company`, `/api/search`,
+`/api/financials`, `/api/funds/search`, `/api/funds/detail`) — see
 `demo/server.mjs` if you want to reuse that pattern in your own app. Set
 `PORT=<port>` to run on a different port.
 

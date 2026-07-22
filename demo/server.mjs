@@ -66,6 +66,33 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, result);
     }
 
+    // These two hit a single source with no fallback, so unlike the news
+    // routes above they throw on failure — the catch block below turns
+    // that into a 500 with the error message instead of sourceErrors.
+    if (url.pathname === '/api/financials') {
+      const ticker = url.searchParams.get('ticker')?.trim();
+      if (!ticker) return sendJson(res, 400, { error: 'ticker query param is required' });
+      const statementType = url.searchParams.get('statementType') || undefined;
+      const period = url.searchParams.get('period') || undefined;
+      const result = await client.getFinancialStatements(ticker, { statementType, period });
+      return sendJson(res, 200, result);
+    }
+
+    if (url.pathname === '/api/funds/search') {
+      const query = url.searchParams.get('query') ?? '';
+      const assetType = url.searchParams.get('assetType') || undefined;
+      const funds = await client.searchFunds(query, { limit, assetType });
+      return sendJson(res, 200, { funds });
+    }
+
+    if (url.pathname === '/api/funds/detail') {
+      const symbol = url.searchParams.get('symbol')?.trim();
+      if (!symbol) return sendJson(res, 400, { error: 'symbol query param is required' });
+      const includeNavHistory = url.searchParams.get('includeNavHistory') === 'true';
+      const result = await client.getFundDetail(symbol, { includeNavHistory });
+      return sendJson(res, 200, result);
+    }
+
     res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('Not found');
   } catch (err) {

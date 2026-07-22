@@ -1,8 +1,6 @@
-import type { SourceName } from './types.js';
-
 export class SourceHttpError extends Error {
   constructor(
-    public readonly source: SourceName,
+    public readonly source: string,
     public readonly url: string,
     public readonly status: number | undefined,
     message: string,
@@ -15,7 +13,7 @@ export class SourceHttpError extends Error {
 
 export class SourceParseError extends Error {
   constructor(
-    public readonly source: SourceName,
+    public readonly source: string,
     message: string,
   ) {
     super(`[${source}] failed to parse response: ${message}`);
@@ -30,7 +28,7 @@ export class SourceParseError extends Error {
  */
 export class SourceUnavailableError extends Error {
   constructor(
-    public readonly source: SourceName,
+    public readonly source: string,
     message: string,
   ) {
     super(`[${source}] source unavailable: ${message}`);

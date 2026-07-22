@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
-export const SourceNameSchema = z.enum(['hose', 'vietstock', 'cafef', 'google-news']);
+export const SourceNameSchema = z.enum([
+  'hose',
+  'vietstock',
+  'cafef',
+  'google-news',
+  'vnexpress',
+  'cafebiz',
+  'vneconomy',
+  'dddn',
+  'znews',
+]);
 export type SourceName = z.infer<typeof SourceNameSchema>;
 
 export const SourceTypeSchema = z.enum(['official_disclosure', 'news_article']);

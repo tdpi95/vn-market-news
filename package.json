@@ -1,7 +1,7 @@
 {
   "name": "vn-market-news",
   "version": "0.1.0",
-  "description": "Aggregates Vietnam stock market news and official disclosures (HOSE, Vietstock, CafeF, Google News) into a normalized schema for analysis and decision-support AI feeds.",
+  "description": "Aggregates Vietnam stock market news, official disclosures, structured financial statements, and mutual fund data from multiple sources into normalized schemas for analysis and decision-support AI feeds.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,7 +34,9 @@
     "cafef",
     "news",
     "disclosures",
-    "finance"
+    "finance",
+    "financial-statements",
+    "mutual-funds"
   ],
   "license": "MIT",
   "dependencies": {
