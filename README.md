@@ -39,9 +39,50 @@ you.
 
 ## Install
 
+This package isn't published to a registry, so pick one of these to use it
+from another project:
+
+**`npm link` (recommended while iterating on this library)**
+
 ```bash
-npm install vn-market-news
+# in this repo
+npm run build
+npm link
+
+# in your other project
+npm link vn-market-news
 ```
+
+After editing this repo, just re-run `npm run build` — linked projects pick
+up the change immediately, no reinstall needed.
+
+**`file:` dependency (no global state)**
+
+```bash
+npm run build   # only dist/ ships, see "files" in package.json
+```
+
+Then in the other project's `package.json`:
+
+```json
+"dependencies": {
+  "vn-market-news": "file:../vn-market-news"
+}
+```
+
+(or an absolute path), then `npm install`. With older npm this copies files
+at install time rather than symlinking, so you'd need to reinstall after
+changes.
+
+**`npm pack` (closest to a real published install)**
+
+```bash
+npm run build && npm pack   # produces vn-market-news-<version>.tgz
+```
+
+Then `npm install /path/to/vn-market-news-<version>.tgz` in the other
+project. Useful as a final check that `files: ["dist"]` actually includes
+everything needed before publishing for real.
 
 Requires Node.js >= 18.17 (uses native `fetch`).
 
