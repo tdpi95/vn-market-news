@@ -1,0 +1,50 @@
+{
+  "name": "vn-market-news",
+  "version": "0.1.0",
+  "description": "Aggregates Vietnam stock market news and official disclosures (HOSE, Vietstock, CafeF, Google News) into a normalized schema for analysis and decision-support AI feeds.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "demo": "npm run build && node demo/server.mjs"
+  },
+  "keywords": [
+    "vietnam",
+    "stock-market",
+    "hose",
+    "vietstock",
+    "cafef",
+    "news",
+    "disclosures",
+    "finance"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "fast-xml-parser": "^4.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
