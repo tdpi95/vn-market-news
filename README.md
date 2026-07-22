@@ -204,6 +204,59 @@ for the report component/ratio category (e.g. "Profitability ratios").
 This hits a single source with no fallback, so unlike the news methods
 above it throws on failure instead of populating `sourceErrors`.
 
+## Company info
+
+Company profile (business description, registration/contact info,
+leadership), officers, major shareholders, ownership breakdown,
+subsidiaries/affiliates, charter capital history, and labor structure —
+also sourced from KB Securities Vietnam, from the same endpoint as
+`getFinancialStatements`:
+
+```ts
+const info = await client.getCompanyInfo('HPG');
+```
+
+Returns a `CompanyInfoResult`:
+
+```ts
+interface CompanyInfoResult {
+  ticker: string;
+  profile: CompanyProfile;                       // business model, charter capital (raw VND), CEO, contact info, ...
+  officers: CompanyOfficer[];                     // board/executive members
+  shareholders: CompanyShareholder[];              // named major shareholders
+  ownership: CompanyOwnershipGroup[];              // ownership by holder category (staff, foreign, etc.), not by name
+  subsidiaries: CompanySubsidiary[];               // ownership > 50% conventionally marks a subsidiary vs. affiliate
+  capitalHistory: CompanyCapitalHistoryEntry[];    // charter capital over time
+  laborStructure: CompanyLaborStructureEntry[];
+  fetchedAt: string;
+  source: 'kbs';
+}
+```
+
+Like `getFinancialStatements`, this hits a single source with no fallback
+and throws on failure instead of populating `sourceErrors`.
+
+**`CompanyProfile` has no company name field** — KBS's profile endpoint
+only returns the ticker symbol, not the legal/display name. For that, use
+`listSymbols`:
+
+```ts
+const stocks = await client.listSymbols(); // { type: 'stock' } by default
+const hpg = stocks.find((s) => s.symbol === 'HPG');
+// { symbol: 'HPG', name: 'CTCP Tập đoàn Hòa Phát', nameEn: 'Hoa Phat Group Joint Stock Company', exchange: 'HOSE', type: 'stock' }
+
+// Or filter server-round-trip-side instead of doing your own .find():
+await client.listSymbols({ query: 'hoa phat' }); // case-insensitive substring match on symbol/name/nameEn
+```
+
+This is deliberately a separate call rather than something `getCompanyInfo`
+fetches for you: the underlying endpoint has no per-ticker filter, so every
+call downloads KBS's *entire* market listing (~3,300 symbols across stocks,
+funds, bonds, corporate bonds, covered warrants, and futures — pass `type`
+to pick one) and filters client-side by `query`/`limit` if given. Cache the
+result yourself if you're calling this often; `getCompanyInfo` doesn't do
+it for you.
+
 ## Mutual funds
 
 Open-end fund data (NAV, top holdings, industry/asset allocation), sourced
@@ -264,13 +317,17 @@ const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource
 - **HOSE's list-endpoint news items don't carry a ticker field directly** —
   tickers are recovered from the conventional `"TICKER: ..."` title prefix,
   or from the ticker you queried by. See `tickerConfidence`.
-- **`getFinancialStatements` uses an undocumented internal API** (KB
-  Securities Vietnam's own web-trading backend), not a published public API
-  — same "could change without notice" risk as Vietstock/CafeF. It also
-  only returns consolidated (group-level) figures — there's no confirmed
-  way to request standalone/parent-only statements — and the number of
-  periods returned isn't controllable (always ~4 most-recent), so build
-  your own history by calling repeatedly over time if you need more.
+- **`getFinancialStatements` and `getCompanyInfo` use an undocumented
+  internal API** (KB Securities Vietnam's own web-trading backend), not a
+  published public API — same "could change without notice" risk as
+  Vietstock/CafeF. `getFinancialStatements` also only returns consolidated
+  (group-level) figures — there's no confirmed way to request
+  standalone/parent-only statements — and the number of periods returned
+  isn't controllable (always ~4 most-recent), so build your own history by
+  calling repeatedly over time if you need more. `getCompanyInfo`'s officer
+  records have a freeform `fromDate` (a start year for most, but a role
+  note like "TV Độc lập" for independent board members) rather than a
+  parseable date.
 - **`searchFunds`/`getFundDetail` also use an undocumented public API**
   (Fmarket's own frontend backend) — genuinely public/unauthenticated, but
   no published contract, so it can change shape without notice.
@@ -281,11 +338,12 @@ const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource
 ## Demo UI
 
 A small local server + browser UI is included under `demo/` for exercising
-the library interactively without writing any code — five tabs: Market
-news, Company news, Search, Financials, and Funds (with a source picker
-and limit control on the news tabs, statement type/period selectors on
-Financials, and a search-then-detail flow with a "View detail →" button
-per result on Funds).
+the library interactively without writing any code — seven tabs: Market
+news, Company news, Search, Financials, Company info, Symbols, and Funds
+(with a source picker and limit control on the news tabs, statement
+type/period selectors on Financials, a type/search-text picker on Symbols,
+and a search-then-detail flow with a "View detail →" button per result on
+Funds).
 
 ```bash
 npm install
@@ -296,7 +354,8 @@ Then open `http://localhost:4173`. A plain HTML page can't call these
 sources directly (none of them send CORS headers), so `demo/server.mjs`
 runs `VnMarketNews` server-side and exposes it to the page over same-origin
 JSON endpoints (`/api/market`, `/api/company`, `/api/search`,
-`/api/financials`, `/api/funds/search`, `/api/funds/detail`) — see
+`/api/financials`, `/api/company-info`, `/api/symbols`, `/api/funds/search`,
+`/api/funds/detail`) — see
 `demo/server.mjs` if you want to reuse that pattern in your own app. Set
 `PORT=<port>` to run on a different port.
 
