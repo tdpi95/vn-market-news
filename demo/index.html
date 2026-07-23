@@ -408,7 +408,7 @@
       </div>`;
   }
 
-  function renderCompanyInfo(data, name) {
+  function renderCompanyInfo(data) {
     const p = data.profile;
     const officerRows = data.officers.map((o) => `
       <tr><td>${escapeHtml(o.name)}</td><td>${escapeHtml(o.position || '—')}</td><td>${escapeHtml(o.fromDate || '—')}</td></tr>`).join('');
@@ -421,8 +421,7 @@
 
     resultsEl.innerHTML = `
       <div class="card">
-        <h3>${escapeHtml(data.ticker)}${name?.name ? ` — ${escapeHtml(name.name)}` : ''} <span class="name-vi">${escapeHtml(p.companyType || '')}</span></h3>
-        ${name?.nameEn ? `<p class="name-vi" style="margin:0 0 0.5rem;">${escapeHtml(name.nameEn)}</p>` : ''}
+        <h3>${escapeHtml(data.ticker)} <span class="name-vi">${escapeHtml(p.companyType || '')}</span></h3>
         <div class="meta">
           <span class="badge">source: ${escapeHtml(data.source)}</span>
           ${p.exchange ? `<span class="badge">${escapeHtml(p.exchange)}</span>` : ''}
@@ -649,18 +648,8 @@
         statusEl.textContent = `${data.symbols.length} symbol(s) in ${took}ms`;
         renderSymbols(data);
       } else if (kind === 'company-info') {
-        let name;
-        try {
-          const symbolsRes = await fetch('/api/symbols?type=stock');
-          const symbolsData = await symbolsRes.json();
-          name = symbolsData.symbols?.find((s) => s.symbol === data.ticker);
-        } catch {
-          // Name lookup is best-effort — the profile endpoint has no name field, and
-          // the listing endpoint is a separate ~470KB call that can fail independently.
-        }
-        const took2 = Math.round(performance.now() - started);
-        statusEl.textContent = `Fetched ${escapeHtml(data.ticker)} in ${took2}ms`;
-        renderCompanyInfo(data, name);
+        statusEl.textContent = `Fetched ${escapeHtml(data.ticker)} in ${took}ms`;
+        renderCompanyInfo(data);
       } else {
         statusEl.textContent = `Fetched ${escapeHtml(data.fund.shortName)} in ${took}ms`;
         renderFundDetail(data);
