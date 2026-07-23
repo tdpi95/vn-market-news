@@ -1,5 +1,5 @@
 import { httpGetJson } from '../lib/http.js';
-import { ddmmyyyyToIso, naiveVnTimestampToIso } from '../lib/kbs-date.js';
+import { ddmmyyyyToIso, naiveVnTimestampToIso } from '../lib/vn-date.js';
 import { stripHtml } from '../lib/text.js';
 import { SourceParseError } from '../errors.js';
 import type {

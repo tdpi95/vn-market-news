@@ -74,14 +74,16 @@ const server = createServer(async (req, res) => {
       if (!ticker) return sendJson(res, 400, { error: 'ticker query param is required' });
       const statementType = url.searchParams.get('statementType') || undefined;
       const period = url.searchParams.get('period') || undefined;
-      const result = await client.getFinancialStatements(ticker, { statementType, period });
+      const source = url.searchParams.get('source') || undefined;
+      const result = await client.getFinancialStatements(ticker, { statementType, period, source });
       return sendJson(res, 200, result);
     }
 
     if (url.pathname === '/api/company-info') {
       const ticker = url.searchParams.get('ticker')?.trim();
       if (!ticker) return sendJson(res, 400, { error: 'ticker query param is required' });
-      const result = await client.getCompanyInfo(ticker);
+      const source = url.searchParams.get('source') || undefined;
+      const result = await client.getCompanyInfo(ticker, { source });
       return sendJson(res, 200, result);
     }
 

@@ -48,7 +48,7 @@ export const FinancialStatementResultSchema = z.object({
   periods: z.array(FinancialPeriodSchema),
   items: z.array(FinancialLineItemSchema),
   fetchedAt: z.string(),
-  source: z.literal('kbs'),
+  source: z.enum(['kbs', 'vci']),
   raw: z.unknown().optional(),
 });
 export type FinancialStatementResult = z.infer<typeof FinancialStatementResultSchema>;

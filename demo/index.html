@@ -215,6 +215,22 @@
             <option value="quarter">quarter</option>
           </select>
         </label>
+        <label>
+          Source
+          <select id="financials-source">
+            <option value="kbs">kbs</option>
+            <option value="vci">vci</option>
+          </select>
+        </label>
+      </div>
+      <div id="company-info-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
+        <label>
+          Source
+          <select id="company-info-source">
+            <option value="kbs">kbs</option>
+            <option value="vci">vci</option>
+          </select>
+        </label>
       </div>
       <div id="symbols-fields" style="display:none; gap:0.75rem; flex-wrap:wrap;">
         <label>
@@ -279,6 +295,7 @@
   const tickerField = document.getElementById('ticker-field');
   const keywordField = document.getElementById('keyword-field');
   const financialsFields = document.getElementById('financials-fields');
+  const companyInfoFields = document.getElementById('company-info-fields');
   const symbolsFields = document.getElementById('symbols-fields');
   const fundsFields = document.getElementById('funds-fields');
   const navHistoryField = document.getElementById('nav-history-field');
@@ -293,6 +310,7 @@
     tickerField.style.display = (name === 'company' || name === 'financials' || name === 'company-info') ? 'flex' : 'none';
     keywordField.style.display = name === 'search' ? 'flex' : 'none';
     financialsFields.style.display = name === 'financials' ? 'flex' : 'none';
+    companyInfoFields.style.display = name === 'company-info' ? 'flex' : 'none';
     symbolsFields.style.display = name === 'symbols' ? 'flex' : 'none';
     fundsFields.style.display = name === 'funds' ? 'flex' : 'none';
     limitField.style.display = (name === 'financials' || name === 'company-info') ? 'none' : 'flex';
@@ -376,9 +394,10 @@
       <div class="card">
         <div class="meta">
           <span class="badge">${escapeHtml(data.ticker)}</span>
+          <span class="badge">source: ${escapeHtml(data.source)}</span>
           <span class="badge">${escapeHtml(data.statementType)}</span>
           <span class="badge">${escapeHtml(data.periodType)}</span>
-          <span class="badge">${escapeHtml(data.currency)}${data.unitScale ? ` × ${data.unitScale}` : ''}</span>
+          <span class="badge">${escapeHtml(data.currency)}${data.unitScale != null && data.unitScale !== 1 ? ` × ${data.unitScale}` : ''}</span>
         </div>
         <div class="fin-table-wrap">
           <table class="fin-table">
@@ -405,7 +424,9 @@
         <h3>${escapeHtml(data.ticker)}${name?.name ? ` — ${escapeHtml(name.name)}` : ''} <span class="name-vi">${escapeHtml(p.companyType || '')}</span></h3>
         ${name?.nameEn ? `<p class="name-vi" style="margin:0 0 0.5rem;">${escapeHtml(name.nameEn)}</p>` : ''}
         <div class="meta">
+          <span class="badge">source: ${escapeHtml(data.source)}</span>
           ${p.exchange ? `<span class="badge">${escapeHtml(p.exchange)}</span>` : ''}
+          ${p.sectorVn ? `<span class="badge">${escapeHtml(p.sectorVn)}</span>` : ''}
           ${p.charterCapital != null ? `<span class="badge">Charter capital ${p.charterCapital.toLocaleString()} VND</span>` : ''}
           ${p.numberOfEmployees != null ? `<span>${p.numberOfEmployees.toLocaleString()} employees</span>` : ''}
           ${p.ceoName ? `<span>CEO: ${escapeHtml(p.ceoName)}</span>` : ''}
@@ -574,12 +595,14 @@
       if (!ticker) { statusEl.textContent = 'Enter a ticker first.'; return; }
       const statementType = document.getElementById('statement-type').value;
       const period = document.getElementById('period-type').value;
-      path = `/api/financials?ticker=${encodeURIComponent(ticker)}&statementType=${statementType}&period=${period}`;
+      const finSource = document.getElementById('financials-source').value;
+      path = `/api/financials?ticker=${encodeURIComponent(ticker)}&statementType=${statementType}&period=${period}&source=${finSource}`;
     } else if (activeTab === 'company-info') {
       kind = 'company-info';
       const ticker = document.getElementById('ticker').value.trim();
       if (!ticker) { statusEl.textContent = 'Enter a ticker first.'; return; }
-      path = `/api/company-info?ticker=${encodeURIComponent(ticker)}`;
+      const source = document.getElementById('company-info-source').value;
+      path = `/api/company-info?ticker=${encodeURIComponent(ticker)}&source=${encodeURIComponent(source)}`;
     } else if (activeTab === 'symbols') {
       kind = 'symbols';
       const type = document.getElementById('symbol-type').value;

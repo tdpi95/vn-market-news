@@ -7,15 +7,41 @@ const ENTITY_MAP: Record<string, string> = {
   '&lt;': '<',
   '&gt;': '>',
   '&quot;': '"',
-  '&#39;': "'",
   '&apos;': "'",
   '&nbsp;': ' ',
+  '&ndash;': '-',
+  '&mdash;': '-',
+  '&hellip;': '...',
+  '&lsquo;': '‘',
+  '&rsquo;': '’',
+  '&ldquo;': '“',
+  '&rdquo;': '”',
+  // Latin-1 accented letters — some sources (e.g. VCI's company profile
+  // HTML) entity-encode only the subset of Vietnamese characters that
+  // happen to have a classic HTML4/Latin-1 named entity, leaving every
+  // other diacritic (ư, ơ, ă, đ, and combining-tone-mark letters) as raw
+  // UTF-8, so this table only needs to cover the Latin-1 supplement.
+  '&Agrave;': 'À', '&Aacute;': 'Á', '&Acirc;': 'Â', '&Atilde;': 'Ã', '&Auml;': 'Ä', '&Aring;': 'Å',
+  '&agrave;': 'à', '&aacute;': 'á', '&acirc;': 'â', '&atilde;': 'ã', '&auml;': 'ä', '&aring;': 'å',
+  '&Egrave;': 'È', '&Eacute;': 'É', '&Ecirc;': 'Ê', '&Euml;': 'Ë',
+  '&egrave;': 'è', '&eacute;': 'é', '&ecirc;': 'ê', '&euml;': 'ë',
+  '&Igrave;': 'Ì', '&Iacute;': 'Í', '&Icirc;': 'Î', '&Iuml;': 'Ï',
+  '&igrave;': 'ì', '&iacute;': 'í', '&icirc;': 'î', '&iuml;': 'ï',
+  '&Ograve;': 'Ò', '&Oacute;': 'Ó', '&Ocirc;': 'Ô', '&Otilde;': 'Õ', '&Ouml;': 'Ö',
+  '&ograve;': 'ò', '&oacute;': 'ó', '&ocirc;': 'ô', '&otilde;': 'õ', '&ouml;': 'ö',
+  '&Ugrave;': 'Ù', '&Uacute;': 'Ú', '&Ucirc;': 'Û', '&Uuml;': 'Ü',
+  '&ugrave;': 'ù', '&uacute;': 'ú', '&ucirc;': 'û', '&uuml;': 'ü',
+  '&Yacute;': 'Ý', '&yacute;': 'ý', '&yuml;': 'ÿ',
+  '&Ccedil;': 'Ç', '&ccedil;': 'ç', '&Ntilde;': 'Ñ', '&ntilde;': 'ñ',
 };
 
 export function stripHtml(input: string | undefined): string | undefined {
   if (!input) return input;
   const withoutTags = input.replace(HTML_TAG_RE, ' ');
-  const decoded = withoutTags.replace(/&[a-z#0-9]+;/gi, (m) => ENTITY_MAP[m] ?? m);
+  const withoutNumericEntities = withoutTags
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
+  const decoded = withoutNumericEntities.replace(/&[a-z]+;/gi, (m) => ENTITY_MAP[m] ?? m);
   return normalizeWhitespace(decoded);
 }
 

@@ -1,5 +1,5 @@
 import { httpGetJson } from '../lib/http.js';
-import { naiveVnTimestampToIso } from '../lib/kbs-date.js';
+import { naiveVnTimestampToIso } from '../lib/vn-date.js';
 import { SourceParseError } from '../errors.js';
 import type {
   FinancialLineItem,

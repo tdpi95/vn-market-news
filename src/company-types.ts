@@ -9,6 +9,11 @@ export const CompanyProfileSchema = z.object({
   foundedDate: z.string().optional(),
   listingDate: z.string().optional(),
   exchange: z.string().optional(),
+  /** ICB sector/industry classification — only populated by sources that expose it (currently VCI, not KBS). */
+  sector: z.string().optional(),
+  sectorVn: z.string().optional(),
+  icbCodeLv2: z.string().optional(),
+  icbCodeLv4: z.string().optional(),
   /** Charter capital, in raw VND (not thousands/millions). */
   charterCapital: z.number().optional(),
   parValue: z.number().optional(),
@@ -107,7 +112,7 @@ export const CompanyInfoResultSchema = z.object({
   capitalHistory: z.array(CompanyCapitalHistoryEntrySchema),
   laborStructure: z.array(CompanyLaborStructureEntrySchema),
   fetchedAt: z.string(),
-  source: z.literal('kbs'),
+  source: z.enum(['kbs', 'vci']),
   raw: z.unknown().optional(),
 });
 export type CompanyInfoResult = z.infer<typeof CompanyInfoResultSchema>;

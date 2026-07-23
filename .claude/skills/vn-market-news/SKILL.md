@@ -15,17 +15,17 @@ read the README before assuming more detail is needed than is here.
 
 ## Sources (9)
 
-| Source | Covers | Mechanism |
-|---|---|---|
-| `hose` | Official HOSE listed-company disclosures | `api.hsx.vn` JSON API + RSS |
-| `vietstock` | News articles from many outlets | Undocumented `dc.vietstock.vn` search API + RSS |
-| `cafef` | News articles | RSS channels (no per-ticker feed) |
-| `google-news` | General news by ticker/company/keyword | `news.google.com/rss/search` |
-| `vnexpress` | Business news | RSS channel (no per-ticker feed) |
-| `cafebiz` | Business/finance news | RSS channels (no per-ticker feed) |
-| `vneconomy` | Stock market/finance news | RSS channels (no per-ticker feed) |
-| `dddn` | Business/finance news (VCCI's newspaper, Diễn Đàn Doanh Nghiệp) | RSS channels (no per-ticker feed) |
-| `znews` | Business/finance news | RSS channel (no per-ticker feed) |
+| Source        | Covers                                                          | Mechanism                                       |
+| ------------- | --------------------------------------------------------------- | ----------------------------------------------- |
+| `hose`        | Official HOSE listed-company disclosures                        | `api.hsx.vn` JSON API + RSS                     |
+| `vietstock`   | News articles from many outlets                                 | Undocumented `dc.vietstock.vn` search API + RSS |
+| `cafef`       | News articles                                                   | RSS channels (no per-ticker feed)               |
+| `google-news` | General news by ticker/company/keyword                          | `news.google.com/rss/search`                    |
+| `vnexpress`   | Business news                                                   | RSS channel (no per-ticker feed)                |
+| `cafebiz`     | Business/finance news                                           | RSS channels (no per-ticker feed)               |
+| `vneconomy`   | Stock market/finance news                                       | RSS channels (no per-ticker feed)               |
+| `dddn`        | Business/finance news (VCCI's newspaper, Diễn Đàn Doanh Nghiệp) | RSS channels (no per-ticker feed)               |
+| `znews`       | Business/finance news                                           | RSS channel (no per-ticker feed)                |
 
 `vnexpress`/`cafebiz`/`vneconomy`/`dddn`/`znews` all share one
 implementation, `createRssNewsSource(name, channels)` in
@@ -36,26 +36,18 @@ URLs and calls the factory; add a new RSS-only outlet the same way rather
 than hand-rolling another class. `cafef.ts` predates the factory and is
 still its own class — leave it as-is unless asked to refactor.
 
-Known live-verification findings (2026-07-22, may drift over time): Báo
-Đầu Tư (`baodautu`) was tried and then removed — its RSS feeds (every
-category, including its own homepage feed) were returning zero `<item>`
-entries despite correct URLs, likely a temporary outage on their end;
-replaced by `dddn`. Thời Báo Kinh Tế Sài Gòn (thesaigontimes.vn) was
-investigated and NOT added — every URL 503'd across repeated attempts,
-possibly specific to this environment's network path.
-
 HNX is deliberately NOT included (no public API, mostly PDF-only content,
 broken TLS chain server-side) — don't re-add it without the user asking.
 
 ## Using it as a consumer
 
 ```ts
-import { VnMarketNews } from 'vn-market-news';
+import { VnMarketNews } from "vn-market-news";
 
 const client = new VnMarketNews();
-const market = await client.getMarketNews({ limit: 20 });               // general market news
-const company = await client.getCompanyNews({ ticker: 'HPG', limit: 20 }); // by ticker
-const results = await client.search({ keyword: 'lãi suất ngân hàng' });  // free text (skips sources without search())
+const market = await client.getMarketNews({ limit: 20 }); // general market news
+const company = await client.getCompanyNews({ ticker: "HPG", limit: 20 }); // by ticker
+const results = await client.search({ keyword: "lãi suất ngân hàng" }); // free text (skips sources without search())
 ```
 
 Every call returns `{ generatedAt, query, items: NewsItem[], sourceErrors }`.
@@ -81,7 +73,10 @@ custom source by implementing the `NewsSource` interface
 ### Financial statements (structured, not news)
 
 ```ts
-const bs = await client.getFinancialStatements('HPG', { statementType: 'balance_sheet', period: 'year' });
+const bs = await client.getFinancialStatements("HPG", {
+  statementType: "balance_sheet",
+  period: "year",
+});
 ```
 
 Separate from the news methods — returns a `FinancialStatementResult`
@@ -95,8 +90,8 @@ rows, consolidated-only, ~4 periods max).
 ### Mutual funds (structured, not news)
 
 ```ts
-const funds = await client.searchFunds('VESAF');
-const detail = await client.getFundDetail('VESAF', { includeNavHistory: true });
+const funds = await client.searchFunds("VESAF");
+const detail = await client.getFundDetail("VESAF", { includeNavHistory: true });
 ```
 
 Open-end fund NAV/holdings/allocation from Fmarket, sourced via
@@ -116,7 +111,7 @@ since inception. Throws on failure, same as `getFinancialStatements`.
 - For a new RSS-only, no-ticker-field source, use `createRssNewsSource`
   from `src/lib/rss-source.ts` (see `src/sources/vnexpress.ts` for the
   shortest example) rather than hand-rolling another class. `src/sources/
-  hose.ts` is the template for a source with a real JSON API and
+hose.ts` is the template for a source with a real JSON API and
   per-company resolution.
 - **Before trusting an assumption about an undocumented endpoint's response
   shape, verify it live** (curl/fetch it) rather than guessing — this

@@ -8,8 +8,10 @@ import { FmarketFundSource } from './sources/fmarket-fund.js';
 import type { GetFundDetailOptions, SearchFundsOptions } from './sources/fmarket-fund.js';
 import { KbsFinanceSource } from './sources/kbs-finance.js';
 import type { GetFinancialStatementsOptions } from './sources/kbs-finance.js';
+import { VciFinanceSource } from './sources/vci-finance.js';
 import { KbsCompanySource } from './sources/kbs-company.js';
 import type { GetCompanyInfoOptions } from './sources/kbs-company.js';
+import { VciCompanySource } from './sources/vci-company.js';
 import { KbsListingSource } from './sources/kbs-listing.js';
 import type { ListSymbolsOptions } from './sources/kbs-listing.js';
 import { createVnEconomySource } from './sources/vneconomy.js';
@@ -63,8 +65,8 @@ type QueryType = z.infer<typeof NewsQueryTypeSchema>;
  */
 export class VnMarketNews {
   private readonly sources: NewsSource[];
-  private readonly financeSource = new KbsFinanceSource();
-  private readonly companySource = new KbsCompanySource();
+  private readonly financeSources = { kbs: new KbsFinanceSource(), vci: new VciFinanceSource() };
+  private readonly companySources = { kbs: new KbsCompanySource(), vci: new VciCompanySource() };
   private readonly listingSource = new KbsListingSource();
   private readonly fundSource = new FmarketFundSource();
 
@@ -79,28 +81,48 @@ export class VnMarketNews {
 
   /**
    * Structured financial statements/ratios for a ticker (balance sheet,
-   * income statement, cash flow, or ratios), sourced from KB Securities —
-   * see `KbsFinanceSource` for details and caveats. Unlike the news
-   * methods above, this hits a single source and throws on failure rather
-   * than degrading into `sourceErrors`, since there's no fallback source.
+   * income statement, cash flow, or ratios). Two sources are available —
+   * pass `source` to pick the one that fits:
+   * - `'kbs'` (default, see `KbsFinanceSource`): human-readable line-item
+   *   names directly from the API, ~4 periods per call, figures in
+   *   thousands VND.
+   * - `'vci'` (see `VciFinanceSource`): full history (8+ years, 30+
+   *   quarters), raw VND figures, but statement line items need a second
+   *   endpoint join for names and include a fixed cross-industry field set
+   *   (all-zero/absent items are dropped rather than shown as noise).
+   *
+   * Unlike the news methods above, this hits a single source and throws on
+   * failure rather than degrading into `sourceErrors`, since there's no
+   * fallback source.
    */
   async getFinancialStatements(
     ticker: string,
-    opts: GetFinancialStatementsOptions = {},
+    opts: GetFinancialStatementsOptions & { source?: 'kbs' | 'vci' } = {},
   ): Promise<FinancialStatementResult> {
-    return this.financeSource.getFinancialStatements(ticker, opts);
+    const { source = 'kbs', ...rest } = opts;
+    return this.financeSources[source].getFinancialStatements(ticker, rest);
   }
 
   /**
-   * Company profile (business description, registration/contact info),
-   * officers, shareholders, ownership breakdown, subsidiaries, and charter
-   * capital history for a ticker, sourced from KB Securities — see
-   * `KbsCompanySource` for details and caveats. Like
-   * `getFinancialStatements`, this hits a single source and throws on
+   * Company profile, officers, shareholders, ownership breakdown, and
+   * subsidiaries for a ticker. Two sources are available with different
+   * strengths — pass `source` to pick the one that fits:
+   * - `'kbs'` (default, see `KbsCompanySource`): richer registration info
+   *   (address/tax id/auditor/etc.), charter capital history, and labor
+   *   structure, but no sector/industry classification.
+   * - `'vci'` (see `VciCompanySource`): has `sector`/`sectorVn`/ICB codes
+   *   on `profile`, but no charter capital history, no labor structure,
+   *   and thinner officer records (no tenure/`fromDate`).
+   *
+   * Like `getFinancialStatements`, this hits a single source and throws on
    * failure rather than degrading into `sourceErrors`.
    */
-  async getCompanyInfo(ticker: string, opts: GetCompanyInfoOptions = {}): Promise<CompanyInfoResult> {
-    return this.companySource.getCompanyInfo(ticker, opts);
+  async getCompanyInfo(
+    ticker: string,
+    opts: GetCompanyInfoOptions & { source?: 'kbs' | 'vci' } = {},
+  ): Promise<CompanyInfoResult> {
+    const { source = 'kbs', ...rest } = opts;
+    return this.companySources[source].getCompanyInfo(ticker, rest);
   }
 
   /**
