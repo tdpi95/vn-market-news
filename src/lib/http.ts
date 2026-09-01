@@ -1,16 +1,16 @@
-import { SourceHttpError } from '../errors.js';
+import { SourceHttpError } from "../errors.js";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_RETRIES = 2;
 const DEFAULT_USER_AGENT =
-  'vn-market-news/0.1 (+https://www.npmjs.com/package/vn-market-news) Node.js';
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 export interface HttpRequestOptions {
   timeoutMs?: number;
   retries?: number;
   headers?: Record<string, string>;
   signal?: AbortSignal;
-  method?: 'GET' | 'POST';
+  method?: "GET" | "POST";
   body?: string;
 }
 
@@ -24,13 +24,13 @@ function describeFetchError(err: unknown): string {
   const parts: string[] = [];
   let current: unknown = err;
   const seen = new Set<unknown>();
-  while (current && typeof current === 'object' && !seen.has(current)) {
+  while (current && typeof current === "object" && !seen.has(current)) {
     seen.add(current);
     const e = current as { message?: string; code?: string; cause?: unknown };
     if (e.message) parts.push(e.code ? `${e.message} (${e.code})` : e.message);
     current = e.cause;
   }
-  return parts.length ? parts.join(' -> ') : String(err);
+  return parts.length ? parts.join(" -> ") : String(err);
 }
 
 function combineSignals(a?: AbortSignal, b?: AbortSignal): AbortSignal {
@@ -38,8 +38,8 @@ function combineSignals(a?: AbortSignal, b?: AbortSignal): AbortSignal {
   if (!b) return a;
   const controller = new AbortController();
   const onAbort = () => controller.abort();
-  a.addEventListener('abort', onAbort, { once: true });
-  b.addEventListener('abort', onAbort, { once: true });
+  a.addEventListener("abort", onAbort, { once: true });
+  b.addEventListener("abort", onAbort, { once: true });
   if (a.aborted || b.aborted) controller.abort();
   return controller.signal;
 }
@@ -56,10 +56,11 @@ async function requestOnce(
 
   try {
     const res = await fetch(url, {
-      method: opts.method ?? 'GET',
+      method: opts.method ?? "GET",
       headers: {
-        'user-agent': DEFAULT_USER_AGENT,
-        accept: 'application/json, application/rss+xml, text/xml, text/html, */*',
+        "user-agent": DEFAULT_USER_AGENT,
+        accept:
+          "application/json, application/rss+xml, text/xml, text/html, */*",
         ...opts.headers,
       },
       body: opts.body,
@@ -68,9 +69,16 @@ async function requestOnce(
     return res;
   } catch (err) {
     if (timeoutController.signal.aborted) {
-      throw new SourceHttpError(source, url, undefined, `timed out after ${timeoutMs}ms`);
+      throw new SourceHttpError(
+        source,
+        url,
+        undefined,
+        `timed out after ${timeoutMs}ms`,
+      );
     }
-    throw new SourceHttpError(source, url, undefined, describeFetchError(err), { cause: err });
+    throw new SourceHttpError(source, url, undefined, describeFetchError(err), {
+      cause: err,
+    });
   } finally {
     clearTimeout(timer);
   }
@@ -125,7 +133,7 @@ export async function httpGetText(
   url: string,
   opts: HttpRequestOptions = {},
 ): Promise<string> {
-  const res = await requestWithRetry(source, url, { ...opts, method: 'GET' });
+  const res = await requestWithRetry(source, url, { ...opts, method: "GET" });
   return res.text();
 }
 
@@ -138,7 +146,12 @@ export async function httpGetJson<T>(
   try {
     return JSON.parse(text) as T;
   } catch (err) {
-    throw new SourceHttpError(source, url, undefined, `invalid JSON response: ${(err as Error).message}`);
+    throw new SourceHttpError(
+      source,
+      url,
+      undefined,
+      `invalid JSON response: ${(err as Error).message}`,
+    );
   }
 }
 
@@ -150,14 +163,19 @@ export async function httpPostJson<T>(
 ): Promise<T> {
   const res = await requestWithRetry(source, url, {
     ...opts,
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...opts.headers },
+    method: "POST",
+    headers: { "content-type": "application/json", ...opts.headers },
     body: JSON.stringify(body),
   });
   const text = await res.text();
   try {
     return JSON.parse(text) as T;
   } catch (err) {
-    throw new SourceHttpError(source, url, undefined, `invalid JSON response: ${(err as Error).message}`);
+    throw new SourceHttpError(
+      source,
+      url,
+      undefined,
+      `invalid JSON response: ${(err as Error).message}`,
+    );
   }
 }
