@@ -1,6 +1,6 @@
 {
   "name": "vn-market-news",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Aggregates Vietnam stock market news, official disclosures, structured financial statements, and mutual fund data from multiple sources into normalized schemas for analysis and decision-support AI feeds.",
   "type": "module",
   "main": "./dist/index.js",
