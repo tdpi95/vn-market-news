@@ -96,7 +96,8 @@ const client = new VnMarketNews();
 // General market news across all sources
 const market = await client.getMarketNews({ limit: 20 });
 
-// News/disclosures for a specific ticker
+// News/disclosures for a specific ticker. Defaults to hose/vietstock/google-news —
+// the only sources with a real per-company query; pass `sources` to widen this.
 const hpg = await client.getCompanyNews({ ticker: 'HPG', limit: 20 });
 
 // Free-text search (sources without a search capability are skipped)
@@ -290,9 +291,18 @@ and throws on failure instead of populating `sourceErrors`.
 
 ## Selecting/disabling sources
 
+`getCompanyNews` defaults to `hose`/`vietstock`/`google-news` — the only
+sources with a real per-company query. cafef/vnexpress/cafebiz/vneconomy/
+dddn/znews have no per-ticker feed or search endpoint, so their company
+news is a full-channel fetch filtered by a title regex: slow and usually
+empty. Pass `sources` explicitly to include one of them anyway.
+
 ```ts
 // Only query specific sources for one call
 await client.getMarketNews({ sources: ['hose', 'google-news'] });
+
+// Widen getCompanyNews beyond its default hose/vietstock/google-news set
+await client.getCompanyNews({ ticker: 'HPG', sources: ['hose', 'vietstock', 'google-news', 'cafef'] });
 
 // Exclude a source at the client level
 const client = new VnMarketNews({ disabledSources: ['cafef'] });
@@ -333,7 +343,9 @@ const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource
   no published contract, so it can change shape without notice.
 - **VnExpress, Cafebiz, VnEconomy, Diễn Đàn Doanh Nghiệp, and Znews have no
   per-ticker feed either**, same limitation and same heuristic as CafeF
-  above.
+  above. All six (these five plus CafeF) are excluded from
+  `getCompanyNews`'s default source set for this reason — pass `sources`
+  explicitly to include one anyway.
 
 ## Demo UI
 

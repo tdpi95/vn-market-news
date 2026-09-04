@@ -46,7 +46,7 @@ import { VnMarketNews } from "vn-market-news";
 
 const client = new VnMarketNews();
 const market = await client.getMarketNews({ limit: 20 }); // general market news
-const company = await client.getCompanyNews({ ticker: "HPG", limit: 20 }); // by ticker
+const company = await client.getCompanyNews({ ticker: "HPG", limit: 20 }); // by ticker; defaults to hose/vietstock/google-news (the only sources with a real per-company query), pass `sources` to widen
 const results = await client.search({ keyword: "lãi suất ngân hàng" }); // free text (skips sources without search())
 ```
 

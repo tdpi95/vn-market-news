@@ -58,6 +58,20 @@ export interface VnMarketNewsOptions {
 type QueryType = z.infer<typeof NewsQueryTypeSchema>;
 
 /**
+ * Sources queried by `getCompanyNews` when the caller doesn't pass an
+ * explicit `sources` list. Narrower than the full default source list:
+ * cafef/vnexpress/cafebiz/vneconomy/dddn/znews have no per-ticker feed or
+ * search endpoint, so their `fetchCompanyNews` just fetches every market
+ * channel and regex-filters titles for the ticker — slow (full-channel
+ * fetches) and usually empty (a ticker rarely appears verbatim in a
+ * category feed's recent items). hose/vietstock/google-news all resolve
+ * the ticker into a real per-company query instead. Pass `sources`
+ * explicitly to override this and include one of the low-yield sources
+ * anyway.
+ */
+const COMPANY_NEWS_SOURCES: SourceName[] = ['hose', 'vietstock', 'google-news'];
+
+/**
  * Aggregates Vietnam market news/disclosures across sources into one
  * normalized, deduplicated feed. Per-source failures never fail the whole
  * call — they're collected in `sourceErrors` instead, so a broken or
@@ -160,8 +174,13 @@ export class VnMarketNews {
     return this.buildResult('market', {}, items, errors, query.limit);
   }
 
+  /**
+   * By default only queries `hose`/`vietstock`/`google-news` — see
+   * `COMPANY_NEWS_SOURCES` for why. Pass `sources` explicitly to widen
+   * (or narrow) that set.
+   */
   async getCompanyNews(query: CompanyNewsQuery): Promise<NewsFeedResult> {
-    const selected = this.selectSources(query.sources);
+    const selected = this.selectSources(query.sources ?? COMPANY_NEWS_SOURCES);
     const { items, errors } = await this.runAll(selected, (s) => s.fetchCompanyNews(query.ticker, query));
     return this.buildResult('company', { ticker: query.ticker.toUpperCase() }, items, errors, query.limit);
   }
