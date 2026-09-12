@@ -1,6 +1,6 @@
 # vn-market-news
 
-🇬🇧 English (below) · [🇻🇳 Tiếng Việt](#tiếng-việt)
+🇬🇧 English · [🇻🇳 Tiếng Việt](#tiếng-việt)
 
 Aggregates Vietnam stock market news, official disclosures, structured
 financial statements, and mutual fund data from multiple sources into
@@ -9,35 +9,22 @@ pipelines.
 
 Sources:
 
-| Source | What it covers | Mechanism | Reliability |
-|---|---|---|---|
-| **HOSE** (`hose`) | Official listed-company disclosures (Ho Chi Minh Stock Exchange) | `api.hsx.vn` public JSON API + RSS | Confirmed working against the live API |
-| **Vietstock** (`vietstock`) | News articles, aggregated from many outlets | Undocumented internal search API + RSS channels | Confirmed working, but unofficial/fragile |
-| **CafeF** (`cafef`) | News articles | RSS channels | Confirmed working; no per-ticker feed exists |
-| **Google News** (`google-news`) | General news mentioning a ticker/company/keyword | `news.google.com/rss/search` | Stable, well-known format |
-| **VnExpress** (`vnexpress`) | Business news | RSS channel | Confirmed working; only a general "kinh-doanh" feed exists, no stock-specific one |
-| **Cafebiz** (`cafebiz`) | Business/finance news | RSS channels | Confirmed working; no per-ticker feed exists |
-| **VnEconomy** (`vneconomy`) | Stock market/finance news | RSS channels | Confirmed working; no per-ticker feed exists |
-| **Diễn Đàn Doanh Nghiệp** (`dddn`) | Business/finance news (VCCI's newspaper) | RSS channels | Confirmed working; no per-ticker feed exists |
-| **Znews** (`znews`) | Business/finance news | RSS channel | Confirmed working; only one relevant category feed exists (zingnews.vn now redirects here) |
+| Source                             | What it covers                                                   | Mechanism                                       | Reliability                                                                                |
+| ---------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **HOSE** (`hose`)                  | Official listed-company disclosures (Ho Chi Minh Stock Exchange) | `api.hsx.vn` public JSON API + RSS              | Confirmed working against the live API                                                     |
+| **Vietstock** (`vietstock`)        | News articles, aggregated from many outlets                      | Undocumented internal search API + RSS channels | Confirmed working, but unofficial/fragile                                                  |
+| **CafeF** (`cafef`)                | News articles                                                    | RSS channels                                    | Confirmed working; no per-ticker feed exists                                               |
+| **Google News** (`google-news`)    | General news mentioning a ticker/company/keyword                 | `news.google.com/rss/search`                    | Stable, well-known format                                                                  |
+| **VnExpress** (`vnexpress`)        | Business news                                                    | RSS channel                                     | Confirmed working; only a general "kinh-doanh" feed exists, no stock-specific one          |
+| **Cafebiz** (`cafebiz`)            | Business/finance news                                            | RSS channels                                    | Confirmed working; no per-ticker feed exists                                               |
+| **VnEconomy** (`vneconomy`)        | Stock market/finance news                                        | RSS channels                                    | Confirmed working; no per-ticker feed exists                                               |
+| **Diễn Đàn Doanh Nghiệp** (`dddn`) | Business/finance news (VCCI's newspaper)                         | RSS channels                                    | Confirmed working; no per-ticker feed exists                                               |
+| **Znews** (`znews`)                | Business/finance news                                            | RSS channel                                     | Confirmed working; only one relevant category feed exists (zingnews.vn now redirects here) |
 
 All of the above except HOSE/Vietstock/Google News have no per-ticker feed
 or structured ticker field, so company news is approximated the same way
 as CafeF: filtering general-channel titles for ticker mentions
 (`tickerConfidence: 'heuristic'`).
-
-HNX (Hanoi Stock Exchange) is intentionally not covered: it has no public
-API, its disclosures are mostly bare PDF attachments with little structured
-text to extract, and its server has a broken TLS certificate chain that
-requires a manual workaround to reach at all — not worth the complexity for
-low-value content. You can still add it yourself as a custom `NewsSource`
-if you need it (see "Selecting/disabling sources" below).
-
-Thời Báo Kinh Tế Sài Gòn (thesaigontimes.vn) was investigated but isn't
-included: every URL on the site returned HTTP 503 across repeated live
-attempts, so there was nothing to verify against. It may just be this
-environment's network path — feel free to add it yourself if it works for
-you.
 
 ## Install
 
@@ -97,7 +84,7 @@ everything needed before publishing for real.
 ## Quick start
 
 ```ts
-import { VnMarketNews } from 'vn-market-news';
+import { VnMarketNews } from "vn-market-news";
 
 const client = new VnMarketNews();
 
@@ -106,19 +93,26 @@ const market = await client.getMarketNews({ limit: 20 });
 
 // News/disclosures for a specific ticker. Defaults to hose/vietstock/google-news —
 // the only sources with a real per-company query; pass `sources` to widen this.
-const hpg = await client.getCompanyNews({ ticker: 'HPG', limit: 20 });
+const hpg = await client.getCompanyNews({ ticker: "HPG", limit: 20 });
 
 // Free-text search (sources without a search capability are skipped)
-const results = await client.search({ keyword: 'lãi suất ngân hàng', limit: 20 });
+const results = await client.search({
+  keyword: "lãi suất ngân hàng",
+  limit: 20,
+});
 ```
 
 Every call returns a `NewsFeedResult`:
 
 ```ts
 interface NewsFeedResult {
-  generatedAt: string;               // ISO 8601, when this result was assembled
-  query: { type: 'market' | 'company' | 'search'; ticker?: string; keyword?: string };
-  items: NewsItem[];                 // deduplicated, sorted newest-first
+  generatedAt: string; // ISO 8601, when this result was assembled
+  query: {
+    type: "market" | "company" | "search";
+    ticker?: string;
+    keyword?: string;
+  };
+  items: NewsItem[]; // deduplicated, sorted newest-first
   sourceErrors: { source: SourceName; message: string }[]; // per-source failures, if any
 }
 ```
@@ -131,25 +125,34 @@ request. Always check it if completeness matters for your use case.
 
 ```ts
 interface NewsItem {
-  id: string;                     // stable id, safe to use as a dedup/cache key
-  source: 'hose' | 'vietstock' | 'cafef' | 'google-news' | 'vnexpress' | 'cafebiz' | 'vneconomy' | 'dddn' | 'znews';
-  sourceType: 'official_disclosure' | 'news_article';
+  id: string; // stable id, safe to use as a dedup/cache key
+  source:
+    | "hose"
+    | "vietstock"
+    | "cafef"
+    | "google-news"
+    | "vnexpress"
+    | "cafebiz"
+    | "vneconomy"
+    | "dddn"
+    | "znews";
+  sourceType: "official_disclosure" | "news_article";
   title: string;
-  summary?: string;                // plain text, HTML stripped
+  summary?: string; // plain text, HTML stripped
   url: string;
-  publishedAt: string;             // ISO 8601
-  fetchedAt: string;               // ISO 8601
-  tickers: string[];               // uppercase ticker symbols, e.g. ["HPG"]
-  tickerConfidence?: 'declared' | 'query' | 'heuristic';
+  publishedAt: string; // ISO 8601
+  fetchedAt: string; // ISO 8601
+  tickers: string[]; // uppercase ticker symbols, e.g. ["HPG"]
+  tickerConfidence?: "declared" | "query" | "heuristic";
   companyName?: string;
   category?: string;
-  language: 'vi' | 'en';
-  originalSource?: string;         // e.g. Vietstock reprints from other outlets
-  raw?: unknown;                   // untouched native payload, for debugging/traceability
+  language: "vi" | "en";
+  originalSource?: string; // e.g. Vietstock reprints from other outlets
+  raw?: unknown; // untouched native payload, for debugging/traceability
 }
 ```
 
-`tickerConfidence` tells you *how* a ticker was attached, which matters if
+`tickerConfidence` tells you _how_ a ticker was attached, which matters if
 you're feeding this into an AI pipeline that reasons over confidence:
 
 - `declared` — the source itself said so (e.g. HOSE's per-company API, or a
@@ -169,7 +172,7 @@ somewhere in your pipeline.
 ### Feeding an LLM
 
 ```ts
-import { toMarkdownDigest } from 'vn-market-news';
+import { toMarkdownDigest } from "vn-market-news";
 
 const digest = toMarkdownDigest(market.items);
 // paste `digest` straight into a prompt/context window
@@ -181,9 +184,9 @@ Structured balance sheet, income statement, cash flow, and financial ratio
 data (not just news about them), sourced from KB Securities Vietnam:
 
 ```ts
-const balanceSheet = await client.getFinancialStatements('HPG', {
-  statementType: 'balance_sheet', // 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios' (default: 'balance_sheet')
-  period: 'year',                 // 'year' | 'quarter' (default: 'year')
+const balanceSheet = await client.getFinancialStatements("HPG", {
+  statementType: "balance_sheet", // 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios' (default: 'balance_sheet')
+  period: "year", // 'year' | 'quarter' (default: 'year')
 });
 ```
 
@@ -192,14 +195,14 @@ Returns a `FinancialStatementResult`:
 ```ts
 interface FinancialStatementResult {
   ticker: string;
-  statementType: 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios';
-  periodType: 'year' | 'quarter';
-  currency: string;                 // "VND"
-  unitScale?: number;                // multiply statement values by this for raw VND (1000); absent for `ratios`
-  periods: FinancialPeriod[];        // e.g. [{ label: "2025", year: 2025, consolidated: true, auditStatus: "audited" }, ...]
-  items: FinancialLineItem[];        // e.g. { name: "Total assets", nameVi: "...", level: 1, values: { "2025": 123, "2024": 111 } }
+  statementType: "balance_sheet" | "income_statement" | "cash_flow" | "ratios";
+  periodType: "year" | "quarter";
+  currency: string; // "VND"
+  unitScale?: number; // multiply statement values by this for raw VND (1000); absent for `ratios`
+  periods: FinancialPeriod[]; // e.g. [{ label: "2025", year: 2025, consolidated: true, auditStatus: "audited" }, ...]
+  items: FinancialLineItem[]; // e.g. { name: "Total assets", nameVi: "...", level: 1, values: { "2025": 123, "2024": 111 } }
   fetchedAt: string;
-  source: 'kbs';
+  source: "kbs";
 }
 ```
 
@@ -222,7 +225,7 @@ also sourced from KB Securities Vietnam, from the same endpoint as
 `getFinancialStatements`:
 
 ```ts
-const info = await client.getCompanyInfo('HPG');
+const info = await client.getCompanyInfo("HPG");
 ```
 
 Returns a `CompanyInfoResult`:
@@ -230,15 +233,15 @@ Returns a `CompanyInfoResult`:
 ```ts
 interface CompanyInfoResult {
   ticker: string;
-  profile: CompanyProfile;                       // business model, charter capital (raw VND), CEO, contact info, ...
-  officers: CompanyOfficer[];                     // board/executive members
-  shareholders: CompanyShareholder[];              // named major shareholders
-  ownership: CompanyOwnershipGroup[];              // ownership by holder category (staff, foreign, etc.), not by name
-  subsidiaries: CompanySubsidiary[];               // ownership > 50% conventionally marks a subsidiary vs. affiliate
-  capitalHistory: CompanyCapitalHistoryEntry[];    // charter capital over time
+  profile: CompanyProfile; // business model, charter capital (raw VND), CEO, contact info, ...
+  officers: CompanyOfficer[]; // board/executive members
+  shareholders: CompanyShareholder[]; // named major shareholders
+  ownership: CompanyOwnershipGroup[]; // ownership by holder category (staff, foreign, etc.), not by name
+  subsidiaries: CompanySubsidiary[]; // ownership > 50% conventionally marks a subsidiary vs. affiliate
+  capitalHistory: CompanyCapitalHistoryEntry[]; // charter capital over time
   laborStructure: CompanyLaborStructureEntry[];
   fetchedAt: string;
-  source: 'kbs';
+  source: "kbs";
 }
 ```
 
@@ -251,16 +254,16 @@ only returns the ticker symbol, not the legal/display name. For that, use
 
 ```ts
 const stocks = await client.listSymbols(); // { type: 'stock' } by default
-const hpg = stocks.find((s) => s.symbol === 'HPG');
+const hpg = stocks.find((s) => s.symbol === "HPG");
 // { symbol: 'HPG', name: 'CTCP Tập đoàn Hòa Phát', nameEn: 'Hoa Phat Group Joint Stock Company', exchange: 'HOSE', type: 'stock' }
 
 // Or filter server-round-trip-side instead of doing your own .find():
-await client.listSymbols({ query: 'hoa phat' }); // case-insensitive substring match on symbol/name/nameEn
+await client.listSymbols({ query: "hoa phat" }); // case-insensitive substring match on symbol/name/nameEn
 ```
 
 This is deliberately a separate call rather than something `getCompanyInfo`
 fetches for you: the underlying endpoint has no per-ticker filter, so every
-call downloads KBS's *entire* market listing (~3,300 symbols across stocks,
+call downloads KBS's _entire_ market listing (~3,300 symbols across stocks,
 funds, bonds, corporate bonds, covered warrants, and futures — pass `type`
 to pick one) and filters client-side by `query`/`limit` if given. Cache the
 result yourself if you're calling this often; `getCompanyInfo` doesn't do
@@ -272,8 +275,8 @@ Open-end fund data (NAV, top holdings, industry/asset allocation), sourced
 from Fmarket, Vietnam's main open-end fund distribution platform:
 
 ```ts
-const funds = await client.searchFunds('VESAF');           // search/list funds by short name/name
-const detail = await client.getFundDetail('VESAF', {
+const funds = await client.searchFunds("VESAF"); // search/list funds by short name/name
+const detail = await client.getFundDetail("VESAF", {
   includeNavHistory: true, // also fetch full NAV history since inception (a separate call)
 });
 ```
@@ -285,12 +288,12 @@ returns a `FundDetailResult`:
 ```ts
 interface FundDetailResult {
   fund: FundSummary;
-  topHoldings: FundHolding[];                 // top ~10 positions, stocks and bonds both included
+  topHoldings: FundHolding[]; // top ~10 positions, stocks and bonds both included
   industryAllocation: FundIndustryAllocation[];
-  assetAllocation: FundAssetAllocation[];      // e.g. stocks vs cash split
-  navHistory?: FundNavPoint[];                 // only when includeNavHistory is set
+  assetAllocation: FundAssetAllocation[]; // e.g. stocks vs cash split
+  navHistory?: FundNavPoint[]; // only when includeNavHistory is set
   fetchedAt: string;
-  source: 'fmarket';
+  source: "fmarket";
 }
 ```
 
@@ -307,20 +310,27 @@ empty. Pass `sources` explicitly to include one of them anyway.
 
 ```ts
 // Only query specific sources for one call
-await client.getMarketNews({ sources: ['hose', 'google-news'] });
+await client.getMarketNews({ sources: ["hose", "google-news"] });
 
 // Widen getCompanyNews beyond its default hose/vietstock/google-news set
-await client.getCompanyNews({ ticker: 'HPG', sources: ['hose', 'vietstock', 'google-news', 'cafef'] });
+await client.getCompanyNews({
+  ticker: "HPG",
+  sources: ["hose", "vietstock", "google-news", "cafef"],
+});
 
 // Exclude a source at the client level
-const client = new VnMarketNews({ disabledSources: ['cafef'] });
+const client = new VnMarketNews({ disabledSources: ["cafef"] });
 
 // Full control: build your own source list, including custom ones
-import { VnMarketNews, defaultSources, HoseSource } from 'vn-market-news';
-import type { NewsSource } from 'vn-market-news';
+import { VnMarketNews, defaultSources, HoseSource } from "vn-market-news";
+import type { NewsSource } from "vn-market-news";
 
-const myCustomSource: NewsSource = { /* implement fetchMarketNews/fetchCompanyNews */ };
-const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource] });
+const myCustomSource: NewsSource = {
+  /* implement fetchMarketNews/fetchCompanyNews */
+};
+const client2 = new VnMarketNews({
+  sources: [...defaultSources(), myCustomSource],
+});
 ```
 
 ## Caveats
@@ -392,7 +402,7 @@ npm run typecheck
 
 # Tiếng Việt
 
-[🇬🇧 English](#vn-market-news) · 🇻🇳 Tiếng Việt (bên dưới)
+[🇬🇧 English](#vn-market-news) · 🇻🇳 Tiếng Việt
 
 Tổng hợp tin tức thị trường chứng khoán Việt Nam, công bố thông tin chính
 thức, báo cáo tài chính có cấu trúc, và dữ liệu quỹ mở từ nhiều nguồn, chuẩn
@@ -401,36 +411,22 @@ AI phân tích/hỗ trợ ra quyết định.
 
 Các nguồn dữ liệu:
 
-| Nguồn | Phạm vi | Cơ chế | Độ tin cậy |
-|---|---|---|---|
-| **HOSE** (`hose`) | Công bố thông tin chính thức của công ty niêm yết (Sở Giao dịch Chứng khoán TP.HCM) | API JSON công khai `api.hsx.vn` + RSS | Đã xác nhận hoạt động với API thực tế |
-| **Vietstock** (`vietstock`) | Tin tức tổng hợp từ nhiều báo | API tìm kiếm nội bộ không công bố + các kênh RSS | Đã xác nhận hoạt động, nhưng không chính thức/dễ thay đổi |
-| **CafeF** (`cafef`) | Tin tức | Các kênh RSS | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu |
-| **Google News** (`google-news`) | Tin tức chung có nhắc đến mã cổ phiếu/công ty/từ khoá | `news.google.com/rss/search` | Ổn định, định dạng phổ biến |
-| **VnExpress** (`vnexpress`) | Tin kinh doanh | Kênh RSS | Đã xác nhận hoạt động; chỉ có feed chung "kinh-doanh", không có feed riêng theo cổ phiếu |
-| **Cafebiz** (`cafebiz`) | Tin kinh doanh/tài chính | Các kênh RSS | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu |
-| **VnEconomy** (`vneconomy`) | Tin thị trường chứng khoán/tài chính | Các kênh RSS | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu |
-| **Diễn Đàn Doanh Nghiệp** (`dddn`) | Tin kinh doanh/tài chính (báo của VCCI) | Các kênh RSS | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu |
-| **Znews** (`znews`) | Tin kinh doanh/tài chính | Kênh RSS | Đã xác nhận hoạt động; chỉ có một kênh chuyên mục liên quan (zingnews.vn hiện chuyển hướng về đây) |
+| Nguồn                              | Phạm vi                                                                             | Cơ chế                                           | Độ tin cậy                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| **HOSE** (`hose`)                  | Công bố thông tin chính thức của công ty niêm yết (Sở Giao dịch Chứng khoán TP.HCM) | API JSON công khai `api.hsx.vn` + RSS            | Đã xác nhận hoạt động với API thực tế                                                              |
+| **Vietstock** (`vietstock`)        | Tin tức tổng hợp từ nhiều báo                                                       | API tìm kiếm nội bộ không công bố + các kênh RSS | Đã xác nhận hoạt động, nhưng không chính thức/dễ thay đổi                                          |
+| **CafeF** (`cafef`)                | Tin tức                                                                             | Các kênh RSS                                     | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu                                        |
+| **Google News** (`google-news`)    | Tin tức chung có nhắc đến mã cổ phiếu/công ty/từ khoá                               | `news.google.com/rss/search`                     | Ổn định, định dạng phổ biến                                                                        |
+| **VnExpress** (`vnexpress`)        | Tin kinh doanh                                                                      | Kênh RSS                                         | Đã xác nhận hoạt động; chỉ có feed chung "kinh-doanh", không có feed riêng theo cổ phiếu           |
+| **Cafebiz** (`cafebiz`)            | Tin kinh doanh/tài chính                                                            | Các kênh RSS                                     | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu                                        |
+| **VnEconomy** (`vneconomy`)        | Tin thị trường chứng khoán/tài chính                                                | Các kênh RSS                                     | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu                                        |
+| **Diễn Đàn Doanh Nghiệp** (`dddn`) | Tin kinh doanh/tài chính (báo của VCCI)                                             | Các kênh RSS                                     | Đã xác nhận hoạt động; không có feed riêng theo mã cổ phiếu                                        |
+| **Znews** (`znews`)                | Tin kinh doanh/tài chính                                                            | Kênh RSS                                         | Đã xác nhận hoạt động; chỉ có một kênh chuyên mục liên quan (zingnews.vn hiện chuyển hướng về đây) |
 
 Tất cả các nguồn trên trừ HOSE/Vietstock/Google News đều không có feed riêng
 theo mã cổ phiếu hay trường mã cổ phiếu có cấu trúc, nên tin theo công ty
 được suy ra bằng cách lọc tiêu đề trong các kênh chung để tìm mã cổ phiếu
 được nhắc đến (`tickerConfidence: 'heuristic'`).
-
-HNX (Sở Giao dịch Chứng khoán Hà Nội) cố tình không được hỗ trợ: không có
-API công khai, công bố thông tin chủ yếu là file PDF đính kèm với rất ít
-nội dung có cấu trúc để trích xuất, và server của họ có chuỗi chứng chỉ TLS
-bị lỗi, cần một cách xử lý thủ công mới truy cập được — không đáng để thêm
-độ phức tạp cho nội dung giá trị thấp như vậy. Bạn vẫn có thể tự thêm HNX
-dưới dạng một `NewsSource` tuỳ chỉnh nếu cần (xem "Chọn/tắt nguồn dữ liệu"
-bên dưới).
-
-Thời Báo Kinh Tế Sài Gòn (thesaigontimes.vn) đã được tìm hiểu nhưng chưa
-được thêm vào: mọi URL trên trang này đều trả về lỗi HTTP 503 qua nhiều lần
-thử trực tiếp, nên không có gì để xác minh. Có thể đây chỉ là vấn đề đường
-truyền mạng của môi trường này — bạn có thể tự thêm nguồn này nếu nó hoạt
-động được ở phía bạn.
 
 ## Cài đặt
 
@@ -490,7 +486,7 @@ mọi thứ cần thiết trước khi publish thật.
 ## Bắt đầu nhanh
 
 ```ts
-import { VnMarketNews } from 'vn-market-news';
+import { VnMarketNews } from "vn-market-news";
 
 const client = new VnMarketNews();
 
@@ -499,19 +495,26 @@ const market = await client.getMarketNews({ limit: 20 });
 
 // Tin tức/công bố thông tin theo mã cổ phiếu. Mặc định dùng hose/vietstock/google-news —
 // đây là các nguồn duy nhất có truy vấn thật theo từng công ty; truyền `sources` để mở rộng.
-const hpg = await client.getCompanyNews({ ticker: 'HPG', limit: 20 });
+const hpg = await client.getCompanyNews({ ticker: "HPG", limit: 20 });
 
 // Tìm kiếm tự do theo từ khoá (nguồn không hỗ trợ search sẽ tự động bị bỏ qua)
-const results = await client.search({ keyword: 'lãi suất ngân hàng', limit: 20 });
+const results = await client.search({
+  keyword: "lãi suất ngân hàng",
+  limit: 20,
+});
 ```
 
 Mỗi lệnh gọi đều trả về một `NewsFeedResult`:
 
 ```ts
 interface NewsFeedResult {
-  generatedAt: string;               // ISO 8601, thời điểm kết quả này được tạo ra
-  query: { type: 'market' | 'company' | 'search'; ticker?: string; keyword?: string };
-  items: NewsItem[];                 // đã loại trùng, sắp xếp mới nhất trước
+  generatedAt: string; // ISO 8601, thời điểm kết quả này được tạo ra
+  query: {
+    type: "market" | "company" | "search";
+    ticker?: string;
+    keyword?: string;
+  };
+  items: NewsItem[]; // đã loại trùng, sắp xếp mới nhất trước
   sourceErrors: { source: SourceName; message: string }[]; // lỗi theo từng nguồn, nếu có
 }
 ```
@@ -525,25 +528,34 @@ quan trọng với use case của bạn.
 
 ```ts
 interface NewsItem {
-  id: string;                     // id ổn định, dùng an toàn làm khoá dedup/cache
-  source: 'hose' | 'vietstock' | 'cafef' | 'google-news' | 'vnexpress' | 'cafebiz' | 'vneconomy' | 'dddn' | 'znews';
-  sourceType: 'official_disclosure' | 'news_article';
+  id: string; // id ổn định, dùng an toàn làm khoá dedup/cache
+  source:
+    | "hose"
+    | "vietstock"
+    | "cafef"
+    | "google-news"
+    | "vnexpress"
+    | "cafebiz"
+    | "vneconomy"
+    | "dddn"
+    | "znews";
+  sourceType: "official_disclosure" | "news_article";
   title: string;
-  summary?: string;                // văn bản thuần, đã loại bỏ HTML
+  summary?: string; // văn bản thuần, đã loại bỏ HTML
   url: string;
-  publishedAt: string;             // ISO 8601
-  fetchedAt: string;               // ISO 8601
-  tickers: string[];               // mã cổ phiếu viết hoa, ví dụ ["HPG"]
-  tickerConfidence?: 'declared' | 'query' | 'heuristic';
+  publishedAt: string; // ISO 8601
+  fetchedAt: string; // ISO 8601
+  tickers: string[]; // mã cổ phiếu viết hoa, ví dụ ["HPG"]
+  tickerConfidence?: "declared" | "query" | "heuristic";
   companyName?: string;
   category?: string;
-  language: 'vi' | 'en';
-  originalSource?: string;         // ví dụ: Vietstock đăng lại từ báo khác
-  raw?: unknown;                   // dữ liệu gốc chưa xử lý, phục vụ debug/truy vết
+  language: "vi" | "en";
+  originalSource?: string; // ví dụ: Vietstock đăng lại từ báo khác
+  raw?: unknown; // dữ liệu gốc chưa xử lý, phục vụ debug/truy vết
 }
 ```
 
-`tickerConfidence` cho biết mã cổ phiếu được gắn vào *bằng cách nào* — điều
+`tickerConfidence` cho biết mã cổ phiếu được gắn vào _bằng cách nào_ — điều
 này quan trọng nếu bạn đưa dữ liệu này vào một pipeline AI có suy luận theo
 độ tin cậy:
 
@@ -565,7 +577,7 @@ tại một điểm nào đó trong pipeline của mình.
 ### Đưa dữ liệu vào LLM
 
 ```ts
-import { toMarkdownDigest } from 'vn-market-news';
+import { toMarkdownDigest } from "vn-market-news";
 
 const digest = toMarkdownDigest(market.items);
 // dán thẳng `digest` vào prompt/context window
@@ -578,9 +590,9 @@ tệ, và chỉ số tài chính có cấu trúc (không chỉ là tin tức v�
 Chứng khoán KB Việt Nam:
 
 ```ts
-const balanceSheet = await client.getFinancialStatements('HPG', {
-  statementType: 'balance_sheet', // 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios' (mặc định: 'balance_sheet')
-  period: 'year',                 // 'year' | 'quarter' (mặc định: 'year')
+const balanceSheet = await client.getFinancialStatements("HPG", {
+  statementType: "balance_sheet", // 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios' (mặc định: 'balance_sheet')
+  period: "year", // 'year' | 'quarter' (mặc định: 'year')
 });
 ```
 
@@ -589,14 +601,14 @@ Trả về một `FinancialStatementResult`:
 ```ts
 interface FinancialStatementResult {
   ticker: string;
-  statementType: 'balance_sheet' | 'income_statement' | 'cash_flow' | 'ratios';
-  periodType: 'year' | 'quarter';
-  currency: string;                 // "VND"
-  unitScale?: number;                // nhân giá trị báo cáo với số này để ra VND thô (1000); không có với `ratios`
-  periods: FinancialPeriod[];        // ví dụ [{ label: "2025", year: 2025, consolidated: true, auditStatus: "audited" }, ...]
-  items: FinancialLineItem[];        // ví dụ { name: "Total assets", nameVi: "...", level: 1, values: { "2025": 123, "2024": 111 } }
+  statementType: "balance_sheet" | "income_statement" | "cash_flow" | "ratios";
+  periodType: "year" | "quarter";
+  currency: string; // "VND"
+  unitScale?: number; // nhân giá trị báo cáo với số này để ra VND thô (1000); không có với `ratios`
+  periods: FinancialPeriod[]; // ví dụ [{ label: "2025", year: 2025, consolidated: true, auditStatus: "audited" }, ...]
+  items: FinancialLineItem[]; // ví dụ { name: "Total assets", nameVi: "...", level: 1, values: { "2025": 123, "2024": 111 } }
   fetchedAt: string;
-  source: 'kbs';
+  source: "kbs";
 }
 ```
 
@@ -619,7 +631,7 @@ con/liên kết, lịch sử vốn điều lệ, và cơ cấu lao động — c
 khoán KB Việt Nam, từ cùng endpoint với `getFinancialStatements`:
 
 ```ts
-const info = await client.getCompanyInfo('HPG');
+const info = await client.getCompanyInfo("HPG");
 ```
 
 Trả về một `CompanyInfoResult`:
@@ -627,15 +639,15 @@ Trả về một `CompanyInfoResult`:
 ```ts
 interface CompanyInfoResult {
   ticker: string;
-  profile: CompanyProfile;                       // mô hình kinh doanh, vốn điều lệ (VND thô), CEO, thông tin liên hệ, ...
-  officers: CompanyOfficer[];                     // thành viên HĐQT/ban điều hành
-  shareholders: CompanyShareholder[];              // cổ đông lớn có tên cụ thể
-  ownership: CompanyOwnershipGroup[];              // sở hữu theo nhóm (nhân viên, nước ngoài, ...), không theo tên
-  subsidiaries: CompanySubsidiary[];               // sở hữu > 50% được quy ước tính là công ty con, dưới mức đó là liên kết
-  capitalHistory: CompanyCapitalHistoryEntry[];    // lịch sử vốn điều lệ theo thời gian
+  profile: CompanyProfile; // mô hình kinh doanh, vốn điều lệ (VND thô), CEO, thông tin liên hệ, ...
+  officers: CompanyOfficer[]; // thành viên HĐQT/ban điều hành
+  shareholders: CompanyShareholder[]; // cổ đông lớn có tên cụ thể
+  ownership: CompanyOwnershipGroup[]; // sở hữu theo nhóm (nhân viên, nước ngoài, ...), không theo tên
+  subsidiaries: CompanySubsidiary[]; // sở hữu > 50% được quy ước tính là công ty con, dưới mức đó là liên kết
+  capitalHistory: CompanyCapitalHistoryEntry[]; // lịch sử vốn điều lệ theo thời gian
   laborStructure: CompanyLaborStructureEntry[];
   fetchedAt: string;
-  source: 'kbs';
+  source: "kbs";
 }
 ```
 
@@ -649,16 +661,16 @@ dùng `listSymbols`:
 
 ```ts
 const stocks = await client.listSymbols(); // mặc định { type: 'stock' }
-const hpg = stocks.find((s) => s.symbol === 'HPG');
+const hpg = stocks.find((s) => s.symbol === "HPG");
 // { symbol: 'HPG', name: 'CTCP Tập đoàn Hòa Phát', nameEn: 'Hoa Phat Group Joint Stock Company', exchange: 'HOSE', type: 'stock' }
 
 // Hoặc lọc ngay phía server thay vì tự .find():
-await client.listSymbols({ query: 'hoa phat' }); // khớp chuỗi con, không phân biệt hoa/thường, trên symbol/name/nameEn
+await client.listSymbols({ query: "hoa phat" }); // khớp chuỗi con, không phân biệt hoa/thường, trên symbol/name/nameEn
 ```
 
 Đây cố tình là một lệnh gọi tách riêng thay vì để `getCompanyInfo` tự lấy
 giúp: endpoint gốc không có bộ lọc theo mã cổ phiếu, nên mỗi lần gọi sẽ tải
-về *toàn bộ* danh mục niêm yết của KBS (~3.300 mã, gồm cổ phiếu, quỹ, trái
+về _toàn bộ_ danh mục niêm yết của KBS (~3.300 mã, gồm cổ phiếu, quỹ, trái
 phiếu, trái phiếu doanh nghiệp, chứng quyền, và hợp đồng tương lai — truyền
 `type` để chọn một loại) rồi lọc ở phía client theo `query`/`limit` nếu có.
 Hãy tự cache kết quả nếu bạn gọi hàm này thường xuyên; `getCompanyInfo`
@@ -670,8 +682,8 @@ Dữ liệu quỹ mở (NAV, danh mục nắm giữ hàng đầu, phân bổ the
 sản), lấy từ Fmarket — nền tảng phân phối quỹ mở chính của Việt Nam:
 
 ```ts
-const funds = await client.searchFunds('VESAF');           // tìm/liệt kê quỹ theo tên viết tắt/tên đầy đủ
-const detail = await client.getFundDetail('VESAF', {
+const funds = await client.searchFunds("VESAF"); // tìm/liệt kê quỹ theo tên viết tắt/tên đầy đủ
+const detail = await client.getFundDetail("VESAF", {
   includeNavHistory: true, // lấy thêm toàn bộ lịch sử NAV từ khi thành lập (một lệnh gọi riêng)
 });
 ```
@@ -683,12 +695,12 @@ công ty quản lý, và biến động NAV theo vài khung thời gian gần nh
 ```ts
 interface FundDetailResult {
   fund: FundSummary;
-  topHoldings: FundHolding[];                 // top ~10 vị thế, gồm cả cổ phiếu và trái phiếu
+  topHoldings: FundHolding[]; // top ~10 vị thế, gồm cả cổ phiếu và trái phiếu
   industryAllocation: FundIndustryAllocation[];
-  assetAllocation: FundAssetAllocation[];      // ví dụ tỷ trọng cổ phiếu so với tiền mặt
-  navHistory?: FundNavPoint[];                 // chỉ có khi bật includeNavHistory
+  assetAllocation: FundAssetAllocation[]; // ví dụ tỷ trọng cổ phiếu so với tiền mặt
+  navHistory?: FundNavPoint[]; // chỉ có khi bật includeNavHistory
   fetchedAt: string;
-  source: 'fmarket';
+  source: "fmarket";
 }
 ```
 
@@ -707,20 +719,27 @@ Truyền `sources` để chủ động thêm một trong các nguồn này nếu
 
 ```ts
 // Chỉ truy vấn các nguồn cụ thể cho một lệnh gọi
-await client.getMarketNews({ sources: ['hose', 'google-news'] });
+await client.getMarketNews({ sources: ["hose", "google-news"] });
 
 // Mở rộng getCompanyNews ra ngoài bộ mặc định hose/vietstock/google-news
-await client.getCompanyNews({ ticker: 'HPG', sources: ['hose', 'vietstock', 'google-news', 'cafef'] });
+await client.getCompanyNews({
+  ticker: "HPG",
+  sources: ["hose", "vietstock", "google-news", "cafef"],
+});
 
 // Loại bỏ một nguồn ở mức client
-const client = new VnMarketNews({ disabledSources: ['cafef'] });
+const client = new VnMarketNews({ disabledSources: ["cafef"] });
 
 // Toàn quyền kiểm soát: tự xây danh sách nguồn, kể cả nguồn tuỳ chỉnh
-import { VnMarketNews, defaultSources, HoseSource } from 'vn-market-news';
-import type { NewsSource } from 'vn-market-news';
+import { VnMarketNews, defaultSources, HoseSource } from "vn-market-news";
+import type { NewsSource } from "vn-market-news";
 
-const myCustomSource: NewsSource = { /* triển khai fetchMarketNews/fetchCompanyNews */ };
-const client2 = new VnMarketNews({ sources: [...defaultSources(), myCustomSource] });
+const myCustomSource: NewsSource = {
+  /* triển khai fetchMarketNews/fetchCompanyNews */
+};
+const client2 = new VnMarketNews({
+  sources: [...defaultSources(), myCustomSource],
+});
 ```
 
 ## Lưu ý
